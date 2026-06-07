@@ -12,8 +12,6 @@
         extend: {
           colors: {
             accent: '#007aff',
-            danger: '#ff3b30',
-            success: '#34c759',
           }
         }
       }
@@ -21,6 +19,14 @@
   </script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    .nav-active {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+    }
+    .dark .nav-active {
+      background: rgba(10, 132, 255, 0.15);
+      color: #0a84ff;
+    }
   </style>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white min-h-screen flex transition-colors">
@@ -34,16 +40,16 @@
   </button>
   
   <!-- 侧边栏 -->
-  <aside class="w-60 bg-neutral-50 dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex flex-col h-screen sticky top-0">
+  <aside class="w-60 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex flex-col h-screen sticky top-0">
     <div class="p-5 border-b border-gray-200 dark:border-neutral-800">
       <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">统计管理</h2>
     </div>
     <nav class="flex-1 p-3 space-y-1">
       <a href="/overview" class="nav-item nav-active block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">API文档</a>
+      <a href="/charts" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
+      <a href="/records" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
+      <a href="/logs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
+      <a href="/api-docs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
     </nav>
     <div class="p-3 border-t border-gray-200 dark:border-neutral-800">
       <a href="/logout" class="block px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">退出登录</a>
@@ -52,42 +58,42 @@
   
   <!-- 主内容区 -->
   <main class="flex-1 p-8">
-    <h1 class="text-2xl font-bold mb-6">数据概览</h1>
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">数据概览</h1>
     
     <!-- 统计卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
         <div class="flex items-center gap-4">
           <span class="text-3xl">📊</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="totalRecords">0</div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="totalRecords">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">总访问次数</div>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
         <div class="flex items-center gap-4">
           <span class="text-3xl">🌐</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueIps">0</div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueIps">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">独立IP数</div>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
         <div class="flex items-center gap-4">
           <span class="text-3xl">🔗</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueUrls">0</div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueUrls">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">访问域名数</div>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
         <div class="flex items-center gap-4">
           <span class="text-3xl">📅</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="activeDays">0</div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="activeDays">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">活跃天数</div>
           </div>
         </div>
@@ -95,27 +101,27 @@
     </div>
     
     <!-- 今日统计 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-neutral-800 mb-6">
-      <h3 class="text-lg font-semibold mb-4">今日访问统计</h3>
+    <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-neutral-800 mb-6 transition-colors">
+      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">今日访问统计</h3>
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-gray-600 dark:text-gray-400">今日访问次数:</span>
-          <span class="font-semibold text-accent" id="todayCount">0</span>
+          <span class="font-semibold text-blue-600 dark:text-blue-400" id="todayCount">-</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-gray-600 dark:text-gray-400">今日独立IP:</span>
-          <span class="font-semibold text-accent" id="todayIps">0</span>
+          <span class="font-semibold text-blue-600 dark:text-blue-400" id="todayIps">-</span>
         </div>
       </div>
     </div>
     
     <!-- 自动刷新 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-neutral-800 flex items-center gap-4">
-      <label class="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" id="autoRefresh" checked class="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent">
+    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-neutral-800 flex items-center gap-4 transition-colors">
+      <label class="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300">
+        <input type="checkbox" id="autoRefresh" checked class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600">
         <span class="text-sm">自动刷新</span>
       </label>
-      <select id="refreshInterval" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm">
+      <select id="refreshInterval" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-800 text-sm text-gray-700 dark:text-gray-300">
         <option value="5">5秒</option>
         <option value="10" selected>10秒</option>
         <option value="30">30秒</option>
@@ -132,12 +138,12 @@
         .then(response => response.json())
         .then(data => {
           if (data.code === 0) {
-            document.getElementById('totalRecords').textContent = data.data.totalRecords;
-            document.getElementById('uniqueIps').textContent = data.data.uniqueIps;
-            document.getElementById('uniqueUrls').textContent = data.data.uniqueUrls;
-            document.getElementById('activeDays').textContent = data.data.activeDays;
-            document.getElementById('todayCount').textContent = data.data.todayCount;
-            document.getElementById('todayIps').textContent = data.data.todayIps;
+            document.getElementById('totalRecords').textContent = data.data.totalRecords || 0;
+            document.getElementById('uniqueIps').textContent = data.data.uniqueIps || 0;
+            document.getElementById('uniqueUrls').textContent = data.data.uniqueUrls || 0;
+            document.getElementById('activeDays').textContent = data.data.activeDays || 0;
+            document.getElementById('todayCount').textContent = data.data.todayCount || 0;
+            document.getElementById('todayIps').textContent = data.data.todayIps || 0;
             document.getElementById('refreshStatus').textContent = '更新于 ' + new Date().toLocaleTimeString();
           } else {
             window.location.href = '/login';
@@ -151,6 +157,7 @@
     
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
+      AppUtils.renderNavigation();
       loadOverview();
       AppUtils.setupAutoRefresh(loadOverview);
     });
