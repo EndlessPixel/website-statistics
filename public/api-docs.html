@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>API文档 - 网页访问统计</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .api-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+    }
+    .api-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .api-method {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .method-post { background: rgba(52, 199, 89, 0.15); color: #34c759; }
+    .method-get { background: rgba(0, 122, 255, 0.15); color: #007aff; }
+    .method-delete { background: rgba(255, 59, 48, 0.15); color: #ff3b30; }
+    .api-url {
+      font-family: monospace;
+      background: var(--surface-secondary);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      color: var(--text-primary);
+    }
+    .api-desc {
+      color: var(--text-secondary);
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+    .api-params {
+      margin-bottom: 15px;
+    }
+    .api-params h4, .api-response h4, .api-example h4 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .params-table th, .params-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border-light);
+      text-align: left;
+    }
+    .params-table th {
+      background: var(--surface-secondary);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .params-table td {
+      color: var(--text-primary);
+    }
+    .param-required {
+      color: #ff3b30;
+      font-size: 12px;
+    }
+    .code-block {
+      background: var(--surface-secondary);
+      padding: 15px;
+      border-radius: 10px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+    .example-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .example-tab {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--surface-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-light);
+    }
+    .example-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .example-content {
+      display: none;
+    }
+    .example-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"></circle>
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+    </svg>
+    <span id="themeText">深色模式</span>
+  </button>
+  
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>统计管理</h2>
+    </div>
+    <div class="sidebar-nav">
+      <button class="nav-item" onclick="location.href='/overview'">数据概览</button>
+      <button class="nav-item" onclick="location.href='/charts'">图表分析</button>
+      <button class="nav-item" onclick="location.href='/records'">访问记录</button>
+      <button class="nav-item" onclick="location.href='/logs'">操作日志</button>
+      <button class="nav-item active" onclick="location.href='/api-docs'">API文档</button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="location.href='/logout'">退出登录</button>
+    </div>
+  </div>
+  
+  <div class="main-content">
+    <h1>API文档</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">以下是网页访问统计系统提供的所有API接口文档。</p>
+    
+    <!-- 统计接口 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-post">POST</span>
+        提交统计数据
+      </div>
+      <div class="api-url">/api/statistics</div>
+      <div class="api-desc">提交网页访问统计数据，用于记录用户访问信息。</div>
+      
+      <div class="api-params">
+        <h4>请求参数（JSON Body）</h4>
+        <table class="params-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>ip</td><td>string</td><td><span class="param-required">必填</span></td><td>用户IP地址</td></tr>
+          <tr><td>url</td><td>string</td><td><span class="param-required">必填</span></td><td>访问的网页域名</td></tr>
+          <tr><td>path</td><td>string</td><td><span class="param-required">必填</span></td><td>访问的网页路径</td></tr>
+          <tr><td>client_time</td><td>string</td><td><span class="param-required">必填</span></td><td>用户端时间</td></tr>
+          <tr><td>server_time</td><td>string</td><td><span class="param-required">必填</span></td><td>服务器时间</td></tr>
+        </table>
+      </div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "msg": "success"
+}
+        </div>
+      </div>
+      
+      <div class="api-example">
+        <h4>调用示例</h4>
+        <div class="example-tabs">
+          <button class="example-tab active" onclick="showExample('post', 'curl')">cURL</button>
+          <button class="example-tab" onclick="showExample('post', 'js')">JavaScript</button>
+          <button class="example-tab" onclick="showExample('post', 'python')">Python</button>
+          <button class="example-tab" onclick="showExample('post', 'php')">PHP</button>
+        </div>
+        <div class="example-content active" id="post-curl">
+          <div class="code-block">
+curl -X POST http://localhost:8000/api/statistics \
+  -H "Content-Type: application/json" \
+  -d '{"ip":"192.168.1.1","url":"example.com","path":"/home","client_time":"2024-01-01 10:00:00","server_time":"2024-01-01 10:00:05"}'
+          </div>
+        </div>
+        <div class="example-content" id="post-js">
+          <div class="code-block">
+fetch('http://localhost:8000/api/statistics', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    ip: '192.168.1.1',
+    url: 'example.com',
+    path: '/home',
+    client_time: '2024-01-01 10:00:00',
+    server_time: '2024-01-01 10:00:05'
+  })
+})
+.then(res => res.json())
+.then(data => console.log(data));
+          </div>
+        </div>
+        <div class="example-content" id="post-python">
+          <div class="code-block">
+import requests
+
+data = {
+    'ip': '192.168.1.1',
+    'url': 'example.com',
+    'path': '/home',
+    'client_time': '2024-01-01 10:00:00',
+    'server_time': '2024-01-01 10:00:05'
+}
+
+response = requests.post('http://localhost:8000/api/statistics', json=data)
+print(response.json())
+          </div>
+        </div>
+        <div class="example-content" id="post-php">
+          <div class="code-block">
+$url = 'http://localhost:8000/api/statistics';
+$data = [
+    'ip' => '192.168.1.1',
+    'url' => 'example.com',
+    'path' => '/home',
+    'client_time' => '2024-01-01 10:00:00',
+    'server_time' => '2024-01-01 10:00:05'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+curl_close($ch);
+echo $response;
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 获取统计数据 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-get">GET</span>
+        获取统计数据列表
+      </div>
+      <div class="api-url">/api/getStatistics?page=1&pageSize=25</div>
+      <div class="api-desc">获取统计数据列表，支持分页查询。需要登录状态。</div>
+      
+      <div class="api-params">
+        <h4>请求参数（Query）</h4>
+        <table class="params-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>page</td><td>integer</td><td>可选</td><td>页码，默认1</td></tr>
+          <tr><td>pageSize</td><td>integer</td><td>可选</td><td>每页数量，默认25，范围1-100</td></tr>
+        </table>
+      </div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "data": [
+    {"id": 1, "ip": "192.168.1.1", "url": "example.com", "path": "/home", ...}
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 25,
+    "total": 100,
+    "totalPages": 4
+  }
+}
+        </div>
+      </div>
+    </div>
+    
+    <!-- 获取概览数据 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-get">GET</span>
+        获取数据概览
+      </div>
+      <div class="api-url">/api/overview</div>
+      <div class="api-desc">获取统计数据概览信息，包括总访问量、独立IP数等。需要登录状态。</div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "data": {
+    "totalRecords": 100,
+    "uniqueIps": 50,
+    "uniqueUrls": 10,
+    "activeDays": 7,
+    "todayRecords": 15,
+    "todayUniqueIps": 8
+  }
+}
+        </div>
+      </div>
+    </div>
+    
+    <!-- 获取图表数据 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-get">GET</span>
+        获取图表统计数据
+      </div>
+      <div class="api-url">/api/getStats</div>
+      <div class="api-desc">获取图表分析所需的数据，包括IP分布、时间分布、访问趋势。需要登录状态。</div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "data": {
+    "ipDistribution": [{"ip": "192.168.1.1", "count": 50}, ...],
+    "hourDistribution": [{"hour": 0, "count": 5}, ...],
+    "dailyTrend": [{"date": "2024-01-01", "count": 20}, ...]
+  }
+}
+        </div>
+      </div>
+    </div>
+    
+    <!-- 删除单条记录 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-delete">DELETE</span>
+        删除单条记录
+      </div>
+      <div class="api-url">/api/statistics/:id</div>
+      <div class="api-desc">删除指定的统计记录。需要登录状态。</div>
+      
+      <div class="api-params">
+        <h4>请求参数</h4>
+        <table class="params-table">
+          <tr><th>参数名</th><th>类型</th><th>位置</th><th>说明</th></tr>
+          <tr><td>id</td><td>integer</td><td>URL路径</td><td>要删除的记录ID</td></tr>
+          <tr><td>force</td><td>string</td><td>Query（可选）</td><td>设为"1"时为强制删除（不记录确认日志类型）</td></tr>
+        </table>
+      </div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "msg": "删除成功"
+}
+        </div>
+      </div>
+      
+      <div class="api-example">
+        <h4>调用示例</h4>
+        <div class="example-tabs">
+          <button class="example-tab active" onclick="showExample('delete', 'curl')">cURL</button>
+          <button class="example-tab" onclick="showExample('delete', 'js')">JavaScript</button>
+        </div>
+        <div class="example-content active" id="delete-curl">
+          <div class="code-block">
+# 普通删除
+curl -X DELETE http://localhost:8000/api/statistics/1
+
+# 强制删除（Shift+点击效果）
+curl -X DELETE "http://localhost:8000/api/statistics/1?force=1"
+          </div>
+        </div>
+        <div class="example-content" id="delete-js">
+          <div class="code-block">
+// 普通删除
+fetch('http://localhost:8000/api/statistics/1', { method: 'DELETE' })
+
+// 强制删除
+fetch('http://localhost:8000/api/statistics/1?force=1', { method: 'DELETE' })
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 批量删除 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-post">POST</span>
+        批量删除记录
+      </div>
+      <div class="api-url">/api/statistics/batch-delete</div>
+      <div class="api-desc">批量删除多条统计记录。需要登录状态。</div>
+      
+      <div class="api-params">
+        <h4>请求参数（JSON Body）</h4>
+        <table class="params-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>ids</td><td>array[integer]</td><td><span class="param-required">必填</span></td><td>要删除的记录ID数组</td></tr>
+          <tr><td>force</td><td>boolean</td><td>可选</td><td>设为true时为强制删除</td></tr>
+        </table>
+      </div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "msg": "成功删除 5 条记录"
+}
+        </div>
+      </div>
+      
+      <div class="api-example">
+        <h4>调用示例</h4>
+        <div class="code-block">
+fetch('http://localhost:8000/api/statistics/batch-delete', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    ids: [1, 2, 3, 4, 5],
+    force: false
+  })
+})
+        </div>
+      </div>
+    </div>
+    
+    <!-- 获取操作日志 -->
+    <div class="api-section">
+      <div class="api-title">
+        <span class="api-method method-get">GET</span>
+        获取操作日志
+      </div>
+      <div class="api-url">/api/logs?page=1&pageSize=25</div>
+      <div class="api-desc">获取操作日志列表，支持分页查询。需要登录状态。</div>
+      
+      <div class="api-params">
+        <h4>请求参数（Query）</h4>
+        <table class="params-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>page</td><td>integer</td><td>可选</td><td>页码，默认1</td></tr>
+          <tr><td>pageSize</td><td>integer</td><td>可选</td><td>每页数量，默认25，范围1-100</td></tr>
+        </table>
+      </div>
+      
+      <div class="api-response">
+        <h4>响应示例</h4>
+        <div class="code-block">
+{
+  "code": 0,
+  "data": [
+    {"id": 1, "operation_type": "login", "target_id": null, "session_id": "abc...", "ip": "::1", "created_at": "2024-01-01T10:00:00Z"}
+  ],
+  "pagination": {"page": 1, "pageSize": 25, "total": 50, "totalPages": 2}
+}
+        </div>
+      </div>
+    </div>
+    
+    <!-- 错误码说明 -->
+    <div class="api-section">
+      <div class="api-title">错误码说明</div>
+      <table class="params-table">
+        <tr><th>错误码</th><th>说明</th></tr>
+        <tr><td>0</td><td>成功</td></tr>
+        <tr><td>-1</td><td>未登录或登录已失效</td></tr>
+        <tr><td>-2</td><td>参数缺失或无效</td></tr>
+        <tr><td>-3</td><td>记录不存在</td></tr>
+        <tr><td>-4</td><td>操作失败</td></tr>
+        <tr><td>-5</td><td>服务器内部错误</td></tr>
+      </table>
+    </div>
+  </div>
+  
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const isDark = body.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      updateThemeUI(isDark);
+    }
+    
+    function updateThemeUI(isDark) {
+      const icon = document.getElementById('themeIcon');
+      const text = document.getElementById('themeText');
+      if (isDark) {
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+        text.textContent = '浅色模式';
+      } else {
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
+        text.textContent = '深色模式';
+      }
+    }
+    
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+      if (isDark) document.body.classList.add('dark');
+      updateThemeUI(isDark);
+    }
+    
+    function showExample(api, lang) {
+      // 切换标签
+      document.querySelectorAll('.example-tab').forEach(tab => {
+        if (tab.onclick.toString().includes(`'${api}', '${lang}'`)) {
+          tab.classList.add('active');
+        } else if (tab.onclick.toString().includes(`'${api}'`)) {
+          tab.classList.remove('active');
+        }
+      });
+      // 切换内容
+      document.querySelectorAll(`.example-content[id^="${api}-"]`).forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`${api}-${lang}`).classList.add('active');
+    }
+    
+    document.addEventListener('DOMContentLoaded', initTheme);
+  </script>
+</body>
+</html>
