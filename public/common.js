@@ -73,7 +73,7 @@ function renderFooter() {
   footer.className = 'site-footer bg-white dark:bg-neutral-900 py-4 px-6 mt-auto';
   footer.innerHTML = `
     <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-      <span>© 2026 EndlessPixel Studio. All rights reserved.</span>
+      <span>© 2026 EndlessPixel Studio</span>
       <span class="hidden sm:inline">|</span>
       <a href="https://github.com/EndlessPixel/website-statistics" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">GitHub</a>
       <span class="hidden sm:inline">|</span>
