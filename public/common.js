@@ -14,7 +14,7 @@ function initTheme() {
   const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
   
   if (isDark) {
-    document.body.classList.add('dark');
+    document.documentElement.classList.add('dark');
   }
   updateThemeUI(isDark);
 }
@@ -23,77 +23,39 @@ function initTheme() {
  * 切换主题
  */
 function toggleTheme() {
-  const body = document.body;
-  const isDark = body.classList.toggle('dark');
+  const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
   updateThemeUI(isDark);
 }
 
 /**
- * 更新主题UI（图标和文字）
+ * 更新主题UI（图标）
  */
 function updateThemeUI(isDark) {
   const icon = document.getElementById('themeIcon');
-  const text = document.getElementById('themeText');
+  if (!icon) return;
   
   if (isDark) {
     icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-    text.textContent = '浅色模式';
   } else {
     icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
-    text.textContent = '深色模式';
   }
 }
 
 // ======================== 导航栏 ========================
 
 /**
- * 导航配置
- */
-const NAV_CONFIG = {
-  overview: { name: '数据概览', path: '/overview', icon: '📊' },
-  charts: { name: '图表分析', path: '/charts', icon: '📈' },
-  records: { name: '访问记录', path: '/records', icon: '📋' },
-  logs: { name: '操作日志', path: '/logs', icon: '📝' },
-  'api-docs': { name: 'API文档', path: '/api-docs', icon: '📚' }
-};
-
-/**
- * 获取当前页面标识
- */
-function getCurrentPageKey() {
-  const path = window.location.pathname;
-  
-  // 移除前导斜杠
-  const cleanPath = path.replace(/^\//, '');
-  
-  // 尝试匹配导航配置中的键
-  if (NAV_CONFIG[cleanPath]) {
-    return cleanPath;
-  }
-  
-  // 处理子路径（如 /records?id=1）
-  const mainPath = cleanPath.split('?')[0].split('/')[0];
-  if (NAV_CONFIG[mainPath]) {
-    return mainPath;
-  }
-  
-  return 'overview'; // 默认
-}
-
-/**
- * 渲染导航栏
+ * 渲染导航栏 - 根据当前页面高亮导航项
  */
 function renderNavigation() {
-  const currentPage = getCurrentPageKey();
+  const currentPath = window.location.pathname;
   
-  // 更新导航项的激活状态
   document.querySelectorAll('.nav-item').forEach(btn => {
-    const href = btn.getAttribute('onclick')?.match(/'(.*?)'/)?.[1];
-    if (href === '/' + currentPage) {
-      btn.classList.add('active');
+    const href = btn.getAttribute('href');
+    if (href === currentPath || (href === '/overview' && (currentPath === '/' || currentPath === ''))) {
+      btn.classList.add('nav-active');
     } else {
-      btn.classList.remove('active');
+      btn.classList.remove('nav-active');
     }
   });
 }
@@ -464,7 +426,6 @@ window.AppUtils = {
   
   // 导航
   renderNavigation,
-  NAV_CONFIG,
   
   // 自动刷新
   setupAutoRefresh,

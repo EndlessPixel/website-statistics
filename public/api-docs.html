@@ -1,496 +1,176 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>API文档 - 网页访问统计</title>
-  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            accent: '#007aff',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    .api-section {
-      margin-bottom: 30px;
-      padding: 20px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      border: 1px solid var(--border-light);
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    .nav-active {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
     }
-    .api-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .api-method {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
+    .dark .nav-active {
+      background: rgba(10, 132, 255, 0.15);
+      color: #0a84ff;
     }
     .method-post { background: rgba(52, 199, 89, 0.15); color: #34c759; }
     .method-get { background: rgba(0, 122, 255, 0.15); color: #007aff; }
     .method-delete { background: rgba(255, 59, 48, 0.15); color: #ff3b30; }
-    .api-url {
-      font-family: monospace;
-      background: var(--surface-secondary);
-      padding: 8px 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      color: var(--text-primary);
-    }
-    .api-desc {
-      color: var(--text-secondary);
-      margin-bottom: 15px;
-      line-height: 1.6;
-    }
-    .api-params {
-      margin-bottom: 15px;
-    }
-    .api-params h4, .api-response h4, .api-example h4 {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 10px;
-    }
-    .params-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .params-table th, .params-table td {
-      padding: 10px 12px;
-      border: 1px solid var(--border-light);
-      text-align: left;
-    }
-    .params-table th {
-      background: var(--surface-secondary);
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-    .params-table td {
-      color: var(--text-primary);
-    }
-    .param-required {
-      color: #ff3b30;
-      font-size: 12px;
-    }
-    .code-block {
-      background: var(--surface-secondary);
-      padding: 15px;
-      border-radius: 10px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 13px;
-      overflow-x: auto;
-      color: var(--text-primary);
-      white-space: pre-wrap;
-    }
-    .example-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .example-tab {
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      cursor: pointer;
-      background: var(--surface-secondary);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-light);
-    }
-    .example-tab.active {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-    .example-content {
-      display: none;
-    }
-    .example-content.active {
-      display: block;
-    }
+    .dark .method-post { background: rgba(48, 209, 88, 0.2); }
+    .dark .method-get { background: rgba(10, 132, 255, 0.2); }
+    .dark .method-delete { background: rgba(255, 69, 58, 0.2); }
+    .example-tab.active { background: #007aff; color: #fff; }
+    .dark .example-tab.active { background: #0a84ff; }
   </style>
 </head>
-<body>
-  <button class="theme-toggle" onclick="AppUtils.toggleTheme()">
-    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white min-h-screen flex transition-colors">
+  
+  <!-- 主题切换按钮 -->
+  <button onclick="AppUtils.toggleTheme()" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl bg-white dark:bg-neutral-800 shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-neutral-700">
+    <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="5"></circle>
       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
     </svg>
-    <span id="themeText">深色模式</span>
   </button>
   
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <h2>统计管理</h2>
+  <!-- 侧边栏 -->
+  <aside class="w-60 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex flex-col h-screen sticky top-0">
+    <div class="p-5 border-b border-gray-200 dark:border-neutral-800">
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">统计管理</h2>
     </div>
-    <div class="sidebar-nav">
-      <button class="nav-item" onclick="location.href='/overview'">数据概览</button>
-      <button class="nav-item" onclick="location.href='/charts'">图表分析</button>
-      <button class="nav-item" onclick="location.href='/records'">访问记录</button>
-      <button class="nav-item" onclick="location.href='/logs'">操作日志</button>
-      <button class="nav-item active" onclick="location.href='/api-docs'">API文档</button>
+    <nav class="flex-1 p-3 space-y-1">
+      <a href="/overview" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">数据概览</a>
+      <a href="/charts" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
+      <a href="/records" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
+      <a href="/logs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
+      <a href="/api-docs" class="nav-item nav-active block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">API文档</a>
+    </nav>
+    <div class="p-3 border-t border-gray-200 dark:border-neutral-800">
+      <a href="/logout" class="block px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">退出登录</a>
     </div>
-    <div class="sidebar-footer">
-      <button class="logout-btn" onclick="location.href='/logout'">退出登录</button>
-    </div>
-  </div>
+  </aside>
   
-  <div class="main-content">
-    <h1>API文档</h1>
-    <p style="color: var(--text-secondary); margin-bottom: 20px;">以下是网页访问统计系统提供的所有API接口文档。</p>
+  <!-- 主内容区 -->
+  <main class="flex-1 p-8 overflow-auto">
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">API文档</h1>
+    <p class="text-gray-500 dark:text-gray-400 mb-6">以下是网页访问统计系统提供的所有API接口文档。</p>
     
-    <!-- 统计接口 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-post">POST</span>
-        提交统计数据
+    <!-- POST 统计接口 -->
+    <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800 mb-6 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="method-post px-3 py-1 rounded text-xs font-bold">POST</span>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">提交统计数据</h3>
       </div>
-      <div class="api-url">/api/statistics</div>
-      <div class="api-desc">提交网页访问统计数据，用于记录用户访问信息。</div>
+      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-3 font-mono text-sm mb-4 text-gray-800 dark:text-gray-200">/api/statistics</div>
+      <p class="text-gray-600 dark:text-gray-400 mb-4">提交网页访问统计数据，用于记录用户访问信息。</p>
       
-      <div class="api-params">
-        <h4>请求参数（JSON Body）</h4>
-        <table class="params-table">
-          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>ip</td><td>string</td><td><span class="param-required">必填</span></td><td>用户IP地址</td></tr>
-          <tr><td>url</td><td>string</td><td><span class="param-required">必填</span></td><td>访问的网页域名</td></tr>
-          <tr><td>path</td><td>string</td><td><span class="param-required">必填</span></td><td>访问的网页路径</td></tr>
-          <tr><td>client_time</td><td>string</td><td><span class="param-required">必填</span></td><td>用户端时间</td></tr>
-          <tr><td>server_time</td><td>string</td><td><span class="param-required">必填</span></td><td>服务器时间</td></tr>
+      <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">请求参数（JSON Body）</h4>
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-sm mb-4">
+          <thead class="bg-gray-50 dark:bg-neutral-800">
+            <tr><th class="px-4 py-2 text-left font-medium text-gray-600 dark:text-gray-300">参数名</th><th class="px-4 py-2 text-left font-medium text-gray-600 dark:text-gray-300">类型</th><th class="px-4 py-2 text-left font-medium text-gray-600 dark:text-gray-300">必填</th><th class="px-4 py-2 text-left font-medium text-gray-600 dark:text-gray-300">说明</th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-neutral-700">
+            <tr><td class="px-4 py-2 text-gray-900 dark:text-white">ip</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">string</td><td class="px-4 py-2 text-red-500">必填</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">用户IP地址</td></tr>
+            <tr><td class="px-4 py-2 text-gray-900 dark:text-white">url</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">string</td><td class="px-4 py-2 text-red-500">必填</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">访问的网页域名</td></tr>
+            <tr><td class="px-4 py-2 text-gray-900 dark:text-white">path</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">string</td><td class="px-4 py-2 text-red-500">必填</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">访问的网页路径</td></tr>
+            <tr><td class="px-4 py-2 text-gray-900 dark:text-white">client_time</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">string</td><td class="px-4 py-2 text-red-500">必填</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">用户端时间</td></tr>
+            <tr><td class="px-4 py-2 text-gray-900 dark:text-white">server_time</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">string</td><td class="px-4 py-2 text-red-500">必填</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">服务器时间</td></tr>
+          </tbody>
         </table>
       </div>
       
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "msg": "success"
-}
-        </div>
-      </div>
+      <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">响应示例</h4>
+      <pre class="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200 mb-4">{ "code": 0, "msg": "success" }</pre>
       
-      <div class="api-example">
-        <h4>调用示例</h4>
-        <div class="example-tabs">
-          <button class="example-tab active" onclick="showExample('post', 'curl')">cURL</button>
-          <button class="example-tab" onclick="showExample('post', 'js')">JavaScript</button>
-          <button class="example-tab" onclick="showExample('post', 'python')">Python</button>
-          <button class="example-tab" onclick="showExample('post', 'php')">PHP</button>
-        </div>
-        <div class="example-content active" id="post-curl">
-          <div class="code-block">
-curl -X POST http://localhost:8000/api/statistics \
-  -H "Content-Type: application/json" \
-  -d '{"ip":"192.168.1.1","url":"example.com","path":"/home","client_time":"2024-01-01 10:00:00","server_time":"2024-01-01 10:00:05"}'
-          </div>
-        </div>
-        <div class="example-content" id="post-js">
-          <div class="code-block">
-fetch('http://localhost:8000/api/statistics', {
+      <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">调用示例</h4>
+      <div class="flex gap-2 mb-3 flex-wrap">
+        <button onclick="showExample('post', 'curl')" class="example-tab active px-4 py-2 rounded-lg text-sm transition-colors">cURL</button>
+        <button onclick="showExample('post', 'js')" class="example-tab px-4 py-2 rounded-lg text-sm bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 transition-colors">JavaScript</button>
+        <button onclick="showExample('post', 'python')" class="example-tab px-4 py-2 rounded-lg text-sm bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 transition-colors">Python</button>
+      </div>
+      <div id="post-curl" class="example-content"><pre class="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200">curl -X POST http://localhost:8000/api/statistics -H "Content-Type: application/json" -d '{"ip":"192.168.1.1","url":"example.com","path":"/home","client_time":"2024-01-01 10:00:00","server_time":"2024-01-01 10:00:05"}'</pre></div>
+      <div id="post-js" class="example-content hidden"><pre class="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200">fetch('http://localhost:8000/api/statistics', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    ip: '192.168.1.1',
-    url: 'example.com',
-    path: '/home',
-    client_time: '2024-01-01 10:00:00',
-    server_time: '2024-01-01 10:00:05'
-  })
+  body: JSON.stringify({ ip: '...', url: '...', path: '...', client_time: '...', server_time: '...' })
 })
 .then(res => res.json())
-.then(data => console.log(data));
-          </div>
-        </div>
-        <div class="example-content" id="post-python">
-          <div class="code-block">
-import requests
-
-data = {
-    'ip': '192.168.1.1',
-    'url': 'example.com',
-    'path': '/home',
-    'client_time': '2024-01-01 10:00:00',
-    'server_time': '2024-01-01 10:00:05'
-}
-
-response = requests.post('http://localhost:8000/api/statistics', json=data)
-print(response.json())
-          </div>
-        </div>
-        <div class="example-content" id="post-php">
-          <div class="code-block">
-$url = 'http://localhost:8000/api/statistics';
-$data = [
-    'ip' => '192.168.1.1',
-    'url' => 'example.com',
-    'path' => '/home',
-    'client_time' => '2024-01-01 10:00:00',
-    'server_time' => '2024-01-01 10:00:05'
-];
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-$response = curl_exec($ch);
-curl_close($ch);
-echo $response;
-          </div>
-        </div>
-      </div>
+.then(data => console.log(data));</pre></div>
+      <div id="post-python" class="example-content hidden"><pre class="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200">import requests
+response = requests.post('http://localhost:8000/api/statistics', json={...})
+print(response.json())</pre></div>
     </div>
     
-    <!-- 获取统计数据 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-get">GET</span>
-        获取统计数据列表
+    <!-- GET 获取统计数据 -->
+    <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800 mb-6 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="method-get px-3 py-1 rounded text-xs font-bold">GET</span>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">获取统计数据列表</h3>
       </div>
-      <div class="api-url">/api/getStatistics?page=1&pageSize=25</div>
-      <div class="api-desc">获取统计数据列表，支持分页查询。需要登录状态。</div>
-      
-      <div class="api-params">
-        <h4>请求参数（Query）</h4>
-        <table class="params-table">
-          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>page</td><td>integer</td><td>可选</td><td>页码，默认1</td></tr>
-          <tr><td>pageSize</td><td>integer</td><td>可选</td><td>每页数量，默认25，范围1-100</td></tr>
+      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-3 font-mono text-sm mb-4 text-gray-800 dark:text-gray-200">/api/getStatistics?page=1&pageSize=25</div>
+      <p class="text-gray-600 dark:text-gray-400 mb-4">获取统计数据列表，支持分页查询。需要登录状态。</p>
+      <pre class="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200">{ "code": 0, "data": [...], "pagination": { "page": 1, "pageSize": 25, "total": 100, "totalPages": 4 } }</pre>
+    </div>
+    
+    <!-- GET 概览 -->
+    <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800 mb-6 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="method-get px-3 py-1 rounded text-xs font-bold">GET</span>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">获取数据概览</h3>
+      </div>
+      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-3 font-mono text-sm mb-4 text-gray-800 dark:text-gray-200">/api/overview</div>
+      <p class="text-gray-600 dark:text-gray-400 mb-4">获取统计数据概览信息，包括总访问量、独立IP数等。需要登录状态。</p>
+      <pre class="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200">{ "code": 0, "data": { "totalRecords": 100, "uniqueIps": 50, "uniqueUrls": 10, "activeDays": 7 } }</pre>
+    </div>
+    
+    <!-- 错误码 -->
+    <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800 transition-colors">
+      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">错误码说明</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-neutral-800">
+            <tr><th class="px-4 py-2 text-left font-medium text-gray-600 dark:text-gray-300">错误码</th><th class="px-4 py-2 text-left font-medium text-gray-600 dark:text-gray-300">说明</th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-neutral-700">
+            <tr><td class="px-4 py-2 text-green-600 dark:text-green-400 font-medium">0</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">成功</td></tr>
+            <tr><td class="px-4 py-2 text-red-500 font-medium">-1</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">未登录或登录已失效</td></tr>
+            <tr><td class="px-4 py-2 text-orange-500 font-medium">-2</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">参数缺失或无效</td></tr>
+            <tr><td class="px-4 py-2 text-orange-500 font-medium">-3</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">记录不存在</td></tr>
+            <tr><td class="px-4 py-2 text-orange-500 font-medium">-4</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">操作失败</td></tr>
+            <tr><td class="px-4 py-2 text-red-600 font-medium">-5</td><td class="px-4 py-2 text-gray-600 dark:text-gray-400">服务器内部错误</td></tr>
+          </tbody>
         </table>
       </div>
-      
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "data": [
-    {"id": 1, "ip": "192.168.1.1", "url": "example.com", "path": "/home", ...}
-  ],
-  "pagination": {
-    "page": 1,
-    "pageSize": 25,
-    "total": 100,
-    "totalPages": 4
-  }
-}
-        </div>
-      </div>
     </div>
-    
-    <!-- 获取概览数据 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-get">GET</span>
-        获取数据概览
-      </div>
-      <div class="api-url">/api/overview</div>
-      <div class="api-desc">获取统计数据概览信息，包括总访问量、独立IP数等。需要登录状态。</div>
-      
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "data": {
-    "totalRecords": 100,
-    "uniqueIps": 50,
-    "uniqueUrls": 10,
-    "activeDays": 7,
-    "todayRecords": 15,
-    "todayUniqueIps": 8
-  }
-}
-        </div>
-      </div>
-    </div>
-    
-    <!-- 获取图表数据 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-get">GET</span>
-        获取图表统计数据
-      </div>
-      <div class="api-url">/api/getStats</div>
-      <div class="api-desc">获取图表分析所需的数据，包括IP分布、时间分布、访问趋势。需要登录状态。</div>
-      
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "data": {
-    "ipDistribution": [{"ip": "192.168.1.1", "count": 50}, ...],
-    "hourDistribution": [{"hour": 0, "count": 5}, ...],
-    "dailyTrend": [{"date": "2024-01-01", "count": 20}, ...]
-  }
-}
-        </div>
-      </div>
-    </div>
-    
-    <!-- 删除单条记录 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-delete">DELETE</span>
-        删除单条记录
-      </div>
-      <div class="api-url">/api/statistics/:id</div>
-      <div class="api-desc">删除指定的统计记录。需要登录状态。</div>
-      
-      <div class="api-params">
-        <h4>请求参数</h4>
-        <table class="params-table">
-          <tr><th>参数名</th><th>类型</th><th>位置</th><th>说明</th></tr>
-          <tr><td>id</td><td>integer</td><td>URL路径</td><td>要删除的记录ID</td></tr>
-          <tr><td>force</td><td>string</td><td>Query（可选）</td><td>设为"1"时为强制删除（不记录确认日志类型）</td></tr>
-        </table>
-      </div>
-      
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "msg": "删除成功"
-}
-        </div>
-      </div>
-      
-      <div class="api-example">
-        <h4>调用示例</h4>
-        <div class="example-tabs">
-          <button class="example-tab active" onclick="showExample('delete', 'curl')">cURL</button>
-          <button class="example-tab" onclick="showExample('delete', 'js')">JavaScript</button>
-        </div>
-        <div class="example-content active" id="delete-curl">
-          <div class="code-block">
-# 普通删除
-curl -X DELETE http://localhost:8000/api/statistics/1
-
-# 强制删除（Shift+点击效果）
-curl -X DELETE "http://localhost:8000/api/statistics/1?force=1"
-          </div>
-        </div>
-        <div class="example-content" id="delete-js">
-          <div class="code-block">
-// 普通删除
-fetch('http://localhost:8000/api/statistics/1', { method: 'DELETE' })
-
-// 强制删除
-fetch('http://localhost:8000/api/statistics/1?force=1', { method: 'DELETE' })
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 批量删除 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-post">POST</span>
-        批量删除记录
-      </div>
-      <div class="api-url">/api/statistics/batch-delete</div>
-      <div class="api-desc">批量删除多条统计记录。需要登录状态。</div>
-      
-      <div class="api-params">
-        <h4>请求参数（JSON Body）</h4>
-        <table class="params-table">
-          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>ids</td><td>array[integer]</td><td><span class="param-required">必填</span></td><td>要删除的记录ID数组</td></tr>
-          <tr><td>force</td><td>boolean</td><td>可选</td><td>设为true时为强制删除</td></tr>
-        </table>
-      </div>
-      
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "msg": "成功删除 5 条记录"
-}
-        </div>
-      </div>
-      
-      <div class="api-example">
-        <h4>调用示例</h4>
-        <div class="code-block">
-fetch('http://localhost:8000/api/statistics/batch-delete', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    ids: [1, 2, 3, 4, 5],
-    force: false
-  })
-})
-        </div>
-      </div>
-    </div>
-    
-    <!-- 获取操作日志 -->
-    <div class="api-section">
-      <div class="api-title">
-        <span class="api-method method-get">GET</span>
-        获取操作日志
-      </div>
-      <div class="api-url">/api/logs?page=1&pageSize=25</div>
-      <div class="api-desc">获取操作日志列表，支持分页查询。需要登录状态。</div>
-      
-      <div class="api-params">
-        <h4>请求参数（Query）</h4>
-        <table class="params-table">
-          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>page</td><td>integer</td><td>可选</td><td>页码，默认1</td></tr>
-          <tr><td>pageSize</td><td>integer</td><td>可选</td><td>每页数量，默认25，范围1-100</td></tr>
-        </table>
-      </div>
-      
-      <div class="api-response">
-        <h4>响应示例</h4>
-        <div class="code-block">
-{
-  "code": 0,
-  "data": [
-    {"id": 1, "operation_type": "login", "target_id": null, "session_id": "abc...", "ip": "::1", "created_at": "2024-01-01T10:00:00Z"}
-  ],
-  "pagination": {"page": 1, "pageSize": 25, "total": 50, "totalPages": 2}
-}
-        </div>
-      </div>
-    </div>
-    
-    <!-- 错误码说明 -->
-    <div class="api-section">
-      <div class="api-title">错误码说明</div>
-      <table class="params-table">
-        <tr><th>错误码</th><th>说明</th></tr>
-        <tr><td>0</td><td>成功</td></tr>
-        <tr><td>-1</td><td>未登录或登录已失效</td></tr>
-        <tr><td>-2</td><td>参数缺失或无效</td></tr>
-        <tr><td>-3</td><td>记录不存在</td></tr>
-        <tr><td>-4</td><td>操作失败</td></tr>
-        <tr><td>-5</td><td>服务器内部错误</td></tr>
-      </table>
-    </div>
-  </div>
+  </main>
   
   <script src="common.js"></script>
   <script>
     function showExample(api, lang) {
-      // 切换标签
-      document.querySelectorAll('.example-tab').forEach(tab => {
-        if (tab.onclick.toString().includes(`'${api}', '${lang}'`)) {
-          tab.classList.add('active');
-        } else if (tab.onclick.toString().includes(`'${api}'`)) {
-          tab.classList.remove('active');
-        }
+      document.querySelectorAll(`[id^="${api}-"]`).forEach(el => el.classList.add('hidden'));
+      document.getElementById(`${api}-${lang}`).classList.remove('hidden');
+      
+      document.querySelectorAll(`.example-tab`).forEach(tab => {
+        tab.classList.remove('active', 'bg-accent', 'text-white');
+        tab.classList.add('bg-gray-100', 'dark:bg-neutral-800', 'text-gray-600', 'dark:text-gray-400');
       });
-      // 切换内容
-      document.querySelectorAll(`.example-content[id^="${api}-"]`).forEach(content => {
-        content.classList.remove('active');
-      });
-      document.getElementById(`${api}-${lang}`).classList.add('active');
+      event.target.classList.add('active', 'bg-accent', 'text-white');
+      event.target.classList.remove('bg-gray-100', 'dark:bg-neutral-800', 'text-gray-600', 'dark:text-gray-400');
     }
     
     document.addEventListener('DOMContentLoaded', function() {
