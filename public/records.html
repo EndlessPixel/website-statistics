@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <button class="theme-toggle" onclick="toggleTheme()">
+  <button class="theme-toggle" onclick="AppUtils.toggleTheme()">
     <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="5"></circle>
       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
@@ -35,7 +35,7 @@
     <div class="count" id="count">总记录数: 0</div>
     
     <div class="batch-actions">
-      <label><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"> 全选</label>
+      <label><input type="checkbox" id="selectAll" onclick="AppUtils.toggleSelectAll()"> 全选</label>
       <button class="batch-btn" id="batchDeleteBtn" disabled>批量删除</button>
       <span class="selected-count" id="selectedCount">已选择 0 条</span>
       <div class="auto-refresh">
@@ -53,12 +53,12 @@
       <div class="page-size">
         <label>每页显示:</label>
         <input type="number" id="pageSize" min="1" max="100" value="25">
-        <button onclick="applyPageSize()">应用</button>
+        <button onclick="AppUtils.applyPageSize(parseInt(document.getElementById('pageSize').value), loadTableData)">应用</button>
       </div>
       <div class="page-nav">
-        <button onclick="prevPage()" id="prevPage" disabled>上一页</button>
+        <button onclick="AppUtils.prevPage(loadTableData)" id="prevPage" disabled>上一页</button>
         <span id="pageInfo">第 1 页 / 共 0 页</span>
-        <button onclick="nextPage()" id="nextPage" disabled>下一页</button>
+        <button onclick="AppUtils.nextPage(loadTableData)" id="nextPage" disabled>下一页</button>
       </div>
     </div>
     
@@ -87,7 +87,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>IP信息查询</h3>
-        <span class="close" onclick="closeIpModal()">&times;</span>
+        <span class="close" onclick="AppUtils.closeIpModal()">&times;</span>
       </div>
       <div class="modal-body" id="ipModalContent">
         <p>正在查询...</p>
@@ -95,148 +95,22 @@
     </div>
   </div>
   
+  <script src="common.js"></script>
   <script>
-    // 主题切换
-    function toggleTheme() {
-      const body = document.body;
-      const isDark = body.classList.toggle('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      updateThemeUI(isDark);
-    }
-    
-    function updateThemeUI(isDark) {
-      const icon = document.getElementById('themeIcon');
-      const text = document.getElementById('themeText');
-      
-      if (isDark) {
-        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-        text.textContent = '浅色模式';
-      } else {
-        icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
-        text.textContent = '深色模式';
-      }
-    }
-    
-    function initTheme() {
-      const savedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-      
-      if (isDark) {
-        document.body.classList.add('dark');
-      }
-      updateThemeUI(isDark);
-    }
-    
-    let currentPage = 1;
-    let currentPageSize = 25;
-    let totalPages = 0;
-    let selectedIds = new Set();
-    let refreshTimer = null;
-    
-    // 统一时间格式化函数
-    function formatTime(timeStr) {
-      if (!timeStr) return '-';
-      try {
-        // 支持时间戳（秒或毫秒）
-        let date;
-        if (/^\d+$/.test(timeStr)) {
-          const timestamp = parseInt(timeStr);
-          // 判断是秒还是毫秒（秒级时间戳通常小于100亿）
-          date = new Date(timestamp < 10000000000 ? timestamp * 1000 : timestamp);
-        } else {
-          date = new Date(timeStr);
-        }
-        
-        if (isNaN(date.getTime())) return timeStr;
-        
-        return date.toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        });
-      } catch (e) {
-        return timeStr;
-      }
-    }
-    
-    function applyPageSize() {
-      const newSize = parseInt(document.getElementById('pageSize').value);
-      if (newSize >= 1 && newSize <= 100) {
-        currentPageSize = newSize;
-        currentPage = 1;
-        selectedIds.clear();
-        updateSelectedCount();
-        loadTableData();
-      } else {
-        alert('每页数量必须在1-100之间');
-      }
-    }
-    
-    function prevPage() {
-      if (currentPage > 1) {
-        currentPage--;
-        selectedIds.clear();
-        updateSelectedCount();
-        loadTableData();
-      }
-    }
-    
-    function nextPage() {
-      if (currentPage < totalPages) {
-        currentPage++;
-        selectedIds.clear();
-        updateSelectedCount();
-        loadTableData();
-      }
-    }
-    
-    function toggleSelectAll() {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"].row-checkbox');
-      const selectAll = document.getElementById('selectAll').checked;
-      
-      checkboxes.forEach(cb => {
-        cb.checked = selectAll;
-        const id = parseInt(cb.dataset.id);
-        if (selectAll) {
-          selectedIds.add(id);
-        } else {
-          selectedIds.delete(id);
-        }
-      });
-      
-      updateSelectedCount();
-    }
-    
-    function updateSelectedCount() {
-      const count = selectedIds.size;
-      document.getElementById('selectedCount').textContent = `已选择 ${count} 条`;
-      document.getElementById('batchDeleteBtn').disabled = count === 0;
-      document.getElementById('selectAll').checked = count > 0 && 
-        document.querySelectorAll('input[type="checkbox"].row-checkbox').length === count;
-    }
-    
-    function toggleRowSelect(id) {
-      const checkbox = document.querySelector(`input[type="checkbox"][data-id="${id}"]`);
-      if (checkbox.checked) {
-        selectedIds.add(id);
-      } else {
-        selectedIds.delete(id);
-      }
-      updateSelectedCount();
-    }
-    
     function loadTableData() {
-      fetch(`/api/getStatistics?page=${currentPage}&pageSize=${currentPageSize}`)
+      const state = AppUtils.getPaginationState();
+      fetch(`/api/getStatistics?page=${state.page}&pageSize=${state.pageSize}`)
         .then(response => response.json())
         .then(data => {
           if (data.code === 0) {
             renderTable(data.data);
-            updatePagination(data.pagination);
+            AppUtils.updatePagination(
+              data.pagination,
+              document.getElementById('count'),
+              document.getElementById('pageInfo'),
+              document.getElementById('prevPage'),
+              document.getElementById('nextPage')
+            );
           } else {
             window.location.href = '/login';
           }
@@ -256,10 +130,9 @@
       }
       
       const tableRows = rows.map(row => {
-        const isSelected = selectedIds.has(row.id);
         return `
           <tr>
-            <td><input type="checkbox" class="row-checkbox" data-id="${row.id}" ${isSelected ? 'checked' : ''} onclick="toggleRowSelect(${row.id})"></td>
+            <td><input type="checkbox" class="row-checkbox" data-id="${row.id}" onclick="AppUtils.toggleRowSelect(${row.id})"></td>
             <td>${row.id}</td>
             <td>
               ${row.ip || '-'}
@@ -267,9 +140,9 @@
             </td>
             <td>${row.url || '-'}</td>
             <td>${row.path || '-'}</td>
-            <td>${formatTime(row.client_time)}</td>
-            <td>${formatTime(row.server_time)}</td>
-            <td>${formatTime(row.statistics_time)}</td>
+            <td>${AppUtils.formatTime(row.client_time)}</td>
+            <td>${AppUtils.formatTime(row.server_time)}</td>
+            <td>${AppUtils.formatTime(row.statistics_time)}</td>
             <td><button class="delete-btn" data-id="${row.id}">删除</button></td>
           </tr>
         `;
@@ -280,183 +153,39 @@
       document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
           const id = parseInt(this.dataset.id);
-          handleDelete(id, e);
+          AppUtils.handleDelete(id, e, loadTableData);
         });
       });
       
       document.querySelectorAll('.query-ip-btn').forEach(btn => {
         btn.addEventListener('click', function() {
           const ip = this.dataset.ip;
-          queryIp(ip);
+          AppUtils.queryIp(ip);
         });
       });
-    }
-    
-    // 查询IP信息
-    function queryIp(ip) {
-      const modal = document.getElementById('ipModal');
-      const content = document.getElementById('ipModalContent');
-      
-      content.innerHTML = '<p>正在查询...</p>';
-      modal.style.display = 'block';
-      
-      fetch(`/api/query-ip?ip=${encodeURIComponent(ip)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.code === 0) {
-            renderIpInfo(data.data);
-          } else {
-            content.innerHTML = `<p style="color:red">${data.msg}</p>`;
-          }
-        })
-        .catch(error => {
-          console.error('查询IP失败:', error);
-          content.innerHTML = '<p style="color:red">查询失败</p>';
-        });
-    }
-    
-    // 渲染IP信息
-    function renderIpInfo(ipInfo) {
-      const content = document.getElementById('ipModalContent');
-      
-      const infoHtml = `
-        <div class="ip-info-grid">
-          <div class="info-item"><span class="label">IP地址:</span><span class="value">${ipInfo.ip || '-'}</span></div>
-          <div class="info-item"><span class="label">国家/地区:</span><span class="value">${ipInfo.country || '-'}</span></div>
-          <div class="info-item"><span class="label">省份:</span><span class="value">${ipInfo.prov || '-'}</span></div>
-          <div class="info-item"><span class="label">城市:</span><span class="value">${ipInfo.city || '-'}</span></div>
-          <div class="info-item"><span class="label">区县:</span><span class="value">${ipInfo.area || '-'}</span></div>
-          <div class="info-item"><span class="label">运营商:</span><span class="value">${ipInfo.isp || '-'}</span></div>
-          <div class="info-item"><span class="label">城市简码:</span><span class="value">${ipInfo.city_short_code || '-'}</span></div>
-          <div class="info-item"><span class="label">邮编:</span><span class="value">${ipInfo.post_code || '-'}</span></div>
-          <div class="info-item"><span class="label">区号:</span><span class="value">${ipInfo.area_code || '-'}</span></div>
-          <div class="info-item"><span class="label">经度:</span><span class="value">${ipInfo.lng || '-'}</span></div>
-          <div class="info-item"><span class="label">纬度:</span><span class="value">${ipInfo.lat || '-'}</span></div>
-          <div class="info-item"><span class="label">大区:</span><span class="value">${ipInfo.big_area || '-'}</span></div>
-          ${ipInfo.ip_type ? `<div class="info-item"><span class="label">IP类型:</span><span class="value">${ipInfo.ip_type}</span></div>` : ''}
-        </div>
-      `;
-      
-      content.innerHTML = infoHtml;
-    }
-    
-    // 关闭IP信息模态框
-    function closeIpModal() {
-      document.getElementById('ipModal').style.display = 'none';
     }
     
     // 点击模态框外部关闭
     window.onclick = function(event) {
       const modal = document.getElementById('ipModal');
       if (event.target === modal) {
-        closeIpModal();
+        AppUtils.closeIpModal();
       }
-    }
-    
-    function handleDelete(id, event) {
-      const isShiftPressed = event.shiftKey;
-      
-      if (isShiftPressed) {
-        deleteRecord(id, true);
-      } else {
-        if (confirm('确定要删除这条记录吗？')) {
-          deleteRecord(id, false);
-        }
-      }
-    }
-    
-    function deleteRecord(id, force = false) {
-      const url = force ? `/api/statistics/${id}?force=1` : `/api/statistics/${id}`;
-      fetch(url, { method: 'DELETE' })
-        .then(response => response.json())
-        .then(data => {
-          if (data.code === 0) {
-            selectedIds.delete(id);
-            updateSelectedCount();
-            loadTableData();
-          } else {
-            alert(data.msg);
-          }
-        })
-        .catch(error => {
-          console.error('删除失败:', error);
-          alert('删除失败');
-        });
-    }
-    
-    function handleBatchDelete(force = false) {
-      if (selectedIds.size === 0) {
-        alert('请先选择要删除的记录');
-        return;
-      }
-      
-      // 强制删除（Shift+点击）不需要确认
-      if (force || confirm(`确定要删除选中的 ${selectedIds.size} 条记录吗？`)) {
-        batchDelete(force);
-      }
-    }
-    
-    function batchDelete(force = false) {
-      const ids = Array.from(selectedIds);
-      
-      fetch('/api/statistics/batch-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids, force })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.code === 0) {
-          selectedIds.clear();
-          updateSelectedCount();
-          loadTableData();
-        } else {
-          alert(data.msg);
-        }
-      })
-      .catch(error => {
-        console.error('批量删除失败:', error);
-        alert('批量删除失败');
-      });
-    }
-    
-    function updatePagination(pagination) {
-      totalPages = pagination.totalPages;
-      document.getElementById('count').textContent = '总记录数: ' + pagination.total;
-      document.getElementById('pageInfo').textContent = `第 ${pagination.page} 页 / 共 ${pagination.totalPages} 页`;
-      document.getElementById('prevPage').disabled = pagination.page <= 1;
-      document.getElementById('nextPage').disabled = pagination.page >= pagination.totalPages;
     }
     
     document.getElementById('pageSize').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') applyPageSize();
+      if (e.key === 'Enter') AppUtils.applyPageSize(parseInt(this.value), loadTableData);
     });
     
-    function setupAutoRefresh() {
-      const autoRefresh = document.getElementById('autoRefresh').checked;
-      const interval = parseInt(document.getElementById('refreshInterval').value) * 1000;
-      
-      if (refreshTimer) {
-        clearInterval(refreshTimer);
-        refreshTimer = null;
-      }
-      
-      if (autoRefresh) {
-        refreshTimer = setInterval(loadTableData, interval);
-      }
-    }
-    
-    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
-    document.getElementById('refreshInterval').addEventListener('change', setupAutoRefresh);
-    
     document.addEventListener('DOMContentLoaded', function() {
-      initTheme();
+      AppUtils.initTheme();
+      AppUtils.renderNavigation();
       loadTableData();
-      setupAutoRefresh();
+      AppUtils.setupAutoRefresh(loadTableData);
       
       // 批量删除按钮事件
       document.getElementById('batchDeleteBtn').addEventListener('click', function(e) {
-        handleBatchDelete(e.shiftKey);
+        AppUtils.handleBatchDelete(e.shiftKey, loadTableData);
       });
     });
   </script>
