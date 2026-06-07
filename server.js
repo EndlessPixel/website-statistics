@@ -289,7 +289,7 @@ app.post('/api/statistics', (req, res) => {
   }
 });
 
-app.get('/api/getStatistics', (req, res) => {
+app.get('/api/records', (req, res) => {
   const sessionId = getSessionId(req);
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 25;
@@ -320,7 +320,7 @@ app.get('/api/getStatistics', (req, res) => {
     
     res.json({ 
       code: 0, 
-      data: rows,
+      data: { records: rows },
       pagination: {
         page,
         pageSize,
@@ -334,7 +334,7 @@ app.get('/api/getStatistics', (req, res) => {
   }
 });
 
-app.get('/api/getStats', (req, res) => {
+app.get('/api/stats', (req, res) => {
   if (!checkLogin(req)) {
     return res.json({ code: -1, msg: '未登录' });
   }
@@ -673,12 +673,25 @@ app.get('/api/logs', (req, res) => {
     const logs = [];
     while (stmt.step()) {
       const row = stmt.getAsObject();
+      // 生成消息文本
+      let message = '';
+      switch(row.operation_type) {
+        case 'login': message = '管理员登录成功'; break;
+        case 'logout': message = '管理员退出登录'; break;
+        case 'delete': message = `删除记录 #${row.target_id}`; break;
+        case 'force_delete': message = `强制删除记录 #${row.target_id}`; break;
+        case 'batch_delete': message = `批量删除记录 (${row.target_id})`; break;
+        case 'force_batch_delete': message = `强制批量删除记录 (${row.target_id})`; break;
+        case 'login_failed': message = '登录失败'; break;
+        default: message = row.operation_type;
+      }
       logs.push({
         id: row.id,
-        operation_type: row.operation_type,
+        action: row.operation_type,
         target_id: row.target_id,
         session_id: row.session_id,
         ip: row.ip,
+        message: message,
         created_at: row.created_at
       });
     }
@@ -686,7 +699,7 @@ app.get('/api/logs', (req, res) => {
     
     res.json({
       code: 0,
-      data: logs,
+      data: { logs: logs },
       pagination: {
         page,
         pageSize,
@@ -750,7 +763,6 @@ initDatabase().then(() => {
     console.log('服务启动成功！');
     console.log('访问密钥（用于查看统计页面）:', SECRET_KEY);
     console.log('服务地址: http://localhost:' + PORT);
-    console.log('统计页面: http://localhost:' + PORT + '/statistics?key=' + SECRET_KEY);
     console.log('接口地址: POST http://localhost:' + PORT + '/api/statistics');
     console.log('========================================');
   });

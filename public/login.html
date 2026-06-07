@@ -1,65 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登录 - 网页访问统计系统</title>
-  <link rel="stylesheet" href="style.css">
+  
+  <!-- 防止深色模式闪烁 -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  </style>
 </head>
-<body class="login-page">
-  <button class="theme-toggle" onclick="toggleTheme()">
-    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white min-h-screen flex items-center justify-center">
+  
+  <!-- 主题切换按钮 -->
+  <button onclick="toggleTheme()" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl bg-white dark:bg-neutral-800 shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-neutral-700">
+    <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="5"></circle>
       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
     </svg>
-    <span id="themeText">深色模式</span>
   </button>
   
-  <div class="login-box">
-    <h2>网页访问统计系统</h2>
-    <p>请输入访问密钥</p>
-    <div class="login-error" id="error"></div>
+  <!-- 登录框 -->
+  <div class="bg-white dark:bg-neutral-900 p-8 rounded-2xl shadow-xl w-full max-w-sm mx-4 transition-colors">
+    <h2 class="text-2xl font-bold text-center mb-2">网页访问统计系统</h2>
+    <p class="text-center text-gray-500 dark:text-gray-400 mb-6">请输入访问密钥</p>
+    
+    <div id="error" class="hidden bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm p-3 rounded-lg mb-4"></div>
+    
     <form id="loginForm">
-      <input type="text" id="key" name="key" placeholder="请输入密钥" required>
-      <span class="error-message">登录密钥在服务器控制台查看</span>
-      <button type="submit">登录</button>
+      <input type="text" id="key" name="key" placeholder="请输入密钥" required
+        class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all mb-2">
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">登录密钥在服务器控制台查看</p>
+      <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">登录</button>
     </form>
   </div>
   
+  <script src="common.js"></script>
   <script>
-    // 主题切换
-    function toggleTheme() {
-      const body = document.body;
-      const isDark = body.classList.toggle('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      updateThemeUI(isDark);
-    }
-    
-    function updateThemeUI(isDark) {
-      const icon = document.getElementById('themeIcon');
-      const text = document.getElementById('themeText');
-      
-      if (isDark) {
-        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-        text.textContent = '浅色模式';
-      } else {
-        icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
-        text.textContent = '深色模式';
-      }
-    }
-    
-    // 初始化主题
-    function initTheme() {
-      const savedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-      
-      if (isDark) {
-        document.body.classList.add('dark');
-      }
-      updateThemeUI(isDark);
-    }
-    
-    // 登录表单处理
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const key = document.getElementById('key').value;
@@ -68,16 +62,24 @@
       }
     });
     
-    // 检查错误参数
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('err') === '1') {
       const errorEl = document.getElementById('error');
       errorEl.textContent = '密钥错误，请重新输入';
-      errorEl.classList.add('show');
+      errorEl.classList.remove('hidden');
     }
     
-    // 初始化
-    initTheme();
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      
+      const icon = document.getElementById('themeIcon');
+      if (isDark) {
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+      } else {
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
+      }
+    }
   </script>
 </body>
 </html>

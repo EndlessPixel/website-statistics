@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数据概览 - 网页访问统计</title>
+  
+  <!-- 防止深色模式闪烁 -->
   <script>
-    // 防止深色模式闪烁 - 在页面渲染前执行
     (function() {
       const savedTheme = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -14,96 +15,101 @@
       }
     })();
   </script>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            accent: '#007aff',
-          }
-        }
-      }
     }
   </script>
+  <link rel="stylesheet" href="/style.css">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-    .nav-active {
-      background: rgba(0, 122, 255, 0.1);
-      color: #007aff;
-    }
-    .dark .nav-active {
-      background: rgba(10, 132, 255, 0.15);
-      color: #0a84ff;
-    }
   </style>
 </head>
-<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white min-h-screen flex flex-col">
+<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
-  <!-- 主题切换按钮 -->
-  <button onclick="AppUtils.toggleTheme()" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl bg-white dark:bg-neutral-800 shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-neutral-700">
-    <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="5"></circle>
-      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-    </svg>
-  </button>
-  
-  <!-- 侧边栏 -->
-  <aside class="w-60 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex flex-col h-screen sticky top-0">
-    <div class="p-5 border-b border-gray-200 dark:border-neutral-800">
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">统计管理</h2>
+  <!-- 顶部导航栏 -->
+  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-8">
+          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
+          <div class="hidden md:flex items-center gap-1">
+            <a href="/overview" class="nav-item nav-active px-4 py-2 rounded-lg text-sm font-medium transition-colors">数据概览</a>
+            <a href="/charts" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
+            <a href="/records" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
+            <a href="/logs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
+            <a href="/api-docs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- 移动端菜单按钮 -->
+          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+          <!-- 主题切换 -->
+          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            </svg>
+          </button>
+          <!-- 退出登录 -->
+          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">退出</a>
+        </div>
+      </div>
     </div>
-    <nav class="flex-1 p-3 space-y-1">
-      <a href="/overview" class="nav-item nav-active block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
-    </nav>
-    <div class="p-3 border-t border-gray-200 dark:border-neutral-800">
-      <a href="/logout" class="block px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">退出登录</a>
+    <!-- 移动端菜单 -->
+    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
+      <a href="/overview" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium">数据概览</a>
+      <a href="/charts" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">图表分析</a>
+      <a href="/records" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">访问记录</a>
+      <a href="/logs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">操作日志</a>
+      <a href="/api-docs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">API文档</a>
     </div>
-  </aside>
+  </nav>
   
   <!-- 主内容区 -->
-  <main class="flex-1 p-8">
-    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">数据概览</h1>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold mb-6">数据概览</h1>
     
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
         <div class="flex items-center gap-4">
           <span class="text-3xl">📊</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="totalRecords">-</div>
+            <div class="text-2xl font-bold" id="totalRecords">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">总访问次数</div>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
         <div class="flex items-center gap-4">
           <span class="text-3xl">🌐</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueIps">-</div>
+            <div class="text-2xl font-bold" id="uniqueIps">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">独立IP数</div>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
         <div class="flex items-center gap-4">
           <span class="text-3xl">🔗</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueUrls">-</div>
+            <div class="text-2xl font-bold" id="uniqueUrls">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">访问域名数</div>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800 transition-colors">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
         <div class="flex items-center gap-4">
           <span class="text-3xl">📅</span>
           <div>
-            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="activeDays">-</div>
+            <div class="text-2xl font-bold" id="activeDays">-</div>
             <div class="text-sm text-gray-500 dark:text-gray-400">活跃天数</div>
           </div>
         </div>
@@ -111,8 +117,8 @@
     </div>
     
     <!-- 今日统计 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-neutral-800 mb-6 transition-colors">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">今日访问统计</h3>
+    <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-neutral-800 mb-6">
+      <h3 class="text-lg font-semibold mb-4">今日访问统计</h3>
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-gray-600 dark:text-gray-400">今日访问次数:</span>
@@ -126,63 +132,63 @@
     </div>
     
     <!-- 自动刷新 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-neutral-800 flex items-center gap-4 transition-colors">
-      <label class="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300">
-        <input type="checkbox" id="autoRefresh" checked class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600">
-        <span class="text-sm">自动刷新</span>
+    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-neutral-800 flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <input type="checkbox" id="autoRefresh" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+        <span>自动刷新</span>
       </label>
-      <select id="refreshInterval" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-800 text-sm text-gray-700 dark:text-gray-300">
-        <option value="5">5秒</option>
-        <option value="10" selected>10秒</option>
-        <option value="30">30秒</option>
-        <option value="60">60秒</option>
-      </select>
-      <span class="text-sm text-gray-500" id="refreshStatus"></span>
+      <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <span>间隔:</span>
+        <select id="refreshInterval" class="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white">
+          <option value="30">30秒</option>
+          <option value="60" selected>1分钟</option>
+          <option value="300">5分钟</option>
+          <option value="600">10分钟</option>
+        </select>
+      </div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">
+        最后更新: <span id="lastUpdate">-</span>
+      </div>
     </div>
   </main>
   
-  <!-- Footer -->
-  <footer class="site-footer bg-white dark:bg-neutral-900 py-4 px-6 mt-auto">
-    <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-      <span>© 2026 EndlessPixel Studio. All rights reserved.</span>
-      <span class="hidden sm:inline">|</span>
-      <a href="https://github.com/EndlessPixel/website-statistics" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">GitHub</a>
-      <span class="hidden sm:inline">|</span>
-      <a href="/LICENSE" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">MIT License</a>
-    </div>
-  </footer>
-  
   <script src="common.js"></script>
   <script>
-    function loadOverview() {
-      fetch('/api/overview')
-        .then(response => response.json())
-        .then(data => {
-          if (data.code === 0) {
-            document.getElementById('totalRecords').textContent = data.data.totalRecords || 0;
-            document.getElementById('uniqueIps').textContent = data.data.uniqueIps || 0;
-            document.getElementById('uniqueUrls').textContent = data.data.uniqueUrls || 0;
-            document.getElementById('activeDays').textContent = data.data.activeDays || 0;
-            document.getElementById('todayCount').textContent = data.data.todayCount || 0;
-            document.getElementById('todayIps').textContent = data.data.todayIps || 0;
-            document.getElementById('refreshStatus').textContent = '更新于 ' + new Date().toLocaleTimeString();
-          } else {
-            window.location.href = '/login';
-          }
-        })
-        .catch(error => {
-          console.error('获取概览数据失败:', error);
-          window.location.href = '/login';
-        });
-    }
-    
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
       AppUtils.renderNavigation();
       AppUtils.renderFooter();
       loadOverview();
       AppUtils.setupAutoRefresh(loadOverview);
+      
+      // 移动端菜单
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+      if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', function() {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
     });
+    
+    async function loadOverview() {
+      try {
+        const response = await fetch('/api/overview');
+        const data = await response.json();
+        
+        if (data.code === 0) {
+          document.getElementById('totalRecords').textContent = data.data.totalRecords || 0;
+          document.getElementById('uniqueIps').textContent = data.data.uniqueIps || 0;
+          document.getElementById('uniqueUrls').textContent = data.data.uniqueUrls || 0;
+          document.getElementById('activeDays').textContent = data.data.activeDays || 0;
+          document.getElementById('todayCount').textContent = data.data.todayCount || 0;
+          document.getElementById('todayIps').textContent = data.data.todayIps || 0;
+          document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+      } catch (error) {
+        console.error('获取数据失败:', error);
+      }
+    }
   </script>
 </body>
 </html>
