@@ -60,6 +60,29 @@ function renderNavigation() {
   });
 }
 
+// ======================== Footer ========================
+
+/**
+ * 渲染 Footer - 包含版权信息、GitHub链接和许可证
+ */
+function renderFooter() {
+  // 检查是否已存在 footer
+  if (document.querySelector('footer')) return;
+  
+  const footer = document.createElement('footer');
+  footer.className = 'site-footer bg-white dark:bg-neutral-900 py-4 px-6 mt-auto';
+  footer.innerHTML = `
+    <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+      <span>© 2026 EndlessPixel Studio. All rights reserved.</span>
+      <span class="hidden sm:inline">|</span>
+      <a href="https://github.com/EndlessPixel/website-statistics" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">GitHub</a>
+      <span class="hidden sm:inline">|</span>
+      <a href="/LICENSE" target="_blank" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">MIT License</a>
+    </div>
+  `;
+  document.body.appendChild(footer);
+}
+
 // ======================== 自动刷新 ========================
 
 let refreshTimer = null;
@@ -426,6 +449,9 @@ window.AppUtils = {
   
   // 导航
   renderNavigation,
+  
+  // Footer
+  renderFooter,
   
   // 自动刷新
   setupAutoRefresh,
