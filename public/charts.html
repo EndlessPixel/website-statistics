@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>图表分析 - 网页访问统计</title>
+  <script>
+    // 防止深色模式闪烁 - 在页面渲染前执行
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <script>
@@ -39,7 +49,7 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white min-h-screen flex transition-colors">
+<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white min-h-screen flex flex-col">
   
   <!-- 主题切换按钮 -->
   <button onclick="AppUtils.toggleTheme(); if(chartInstance) chartInstance.resize();" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl bg-white dark:bg-neutral-800 shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-neutral-700">

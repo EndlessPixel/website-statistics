@@ -19,6 +19,15 @@ body.login-page {
   background: rgba(10, 132, 255, 0.15);
 }
 
+/* Footer */
+.site-footer {
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark .site-footer {
+  border-top-color: #374151;
+}
+
 /* 登录页面样式 */
 .login-box {
   background: white;
