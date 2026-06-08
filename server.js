@@ -10,6 +10,240 @@ const https = require('https');
 const app = express();
 const PORT = 8000;
 
+// 密钥配置文件路径
+const KEYS_FILE = path.join(__dirname, 'keys.json');
+
+// 备份相关配置
+const BACKUP_DIR = path.join(__dirname, 'backups');
+const MAX_BACKUPS = 25;
+
+// 确保备份目录存在
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+// 创建备份
+function createBackup(reason = 'manual') {
+  return new Promise((resolve) => {
+    const timestamp = Date.now();
+    const backupName = `backup_${timestamp}_${reason}.json`;
+    const backupPath = path.join(BACKUP_DIR, backupName);
+    
+    db.all('SELECT * FROM statistics ORDER BY id DESC', [], (err, records) => {
+      if (err) {
+        console.error('创建备份失败:', err.message);
+        resolve(false);
+        return;
+      }
+      
+      const backupData = {
+        timestamp,
+        reason,
+        count: records.length,
+        records
+      };
+      
+      fs.writeFile(backupPath, JSON.stringify(backupData, null, 2), (err) => {
+        if (err) {
+          console.error('保存备份失败:', err.message);
+          resolve(false);
+          return;
+        }
+        
+        console.log(`备份创建成功: ${backupName}`);
+        cleanupOldBackups();
+        resolve(true);
+      });
+    });
+  });
+}
+
+// 清理旧备份（保留最新的MAX_BACKUPS个）
+function cleanupOldBackups() {
+  fs.readdir(BACKUP_DIR, (err, files) => {
+    if (err) {
+      console.error('读取备份目录失败:', err.message);
+      return;
+    }
+    
+    const backupFiles = files
+      .filter(f => f.startsWith('backup_') && f.endsWith('.json'))
+      .sort((a, b) => {
+        const timestampA = parseInt(a.split('_')[1]);
+        const timestampB = parseInt(b.split('_')[1]);
+        return timestampB - timestampA;
+      });
+    
+    if (backupFiles.length > MAX_BACKUPS) {
+      const filesToDelete = backupFiles.slice(MAX_BACKUPS);
+      filesToDelete.forEach(file => {
+        fs.unlink(path.join(BACKUP_DIR, file), (err) => {
+          if (err) {
+            console.error('删除旧备份失败:', err.message);
+          } else {
+            console.log(`清理旧备份: ${file}`);
+          }
+        });
+      });
+    }
+  });
+}
+
+// 获取备份列表
+function getBackupList() {
+  return new Promise((resolve) => {
+    fs.readdir(BACKUP_DIR, (err, files) => {
+      if (err) {
+        console.error('读取备份目录失败:', err.message);
+        resolve([]);
+        return;
+      }
+      
+      const backups = files
+        .filter(f => f.startsWith('backup_') && f.endsWith('.json'))
+        .map(f => {
+          const parts = f.split('_');
+          const timestamp = parseInt(parts[1]);
+          const reason = parts[2]?.replace('.json', '') || 'manual';
+          return {
+            filename: f,
+            timestamp,
+            reason,
+            date: new Date(timestamp).toLocaleString('zh-CN')
+          };
+        })
+        .sort((a, b) => b.timestamp - a.timestamp);
+      
+      resolve(backups);
+    });
+  });
+}
+
+// 读取备份内容
+function readBackup(filename) {
+  return new Promise((resolve) => {
+    const backupPath = path.join(BACKUP_DIR, filename);
+    fs.readFile(backupPath, 'utf8', (err, data) => {
+      if (err) {
+        console.error('读取备份失败:', err.message);
+        resolve(null);
+        return;
+      }
+      
+      try {
+        const backupData = JSON.parse(data);
+        resolve(backupData);
+      } catch (e) {
+        console.error('解析备份文件失败:', e.message);
+        resolve(null);
+      }
+    });
+  });
+}
+
+// 回滚到备份
+async function rollbackToBackup(filename) {
+  const backupData = await readBackup(filename);
+  if (!backupData) {
+    return { success: false, message: '无法读取备份文件' };
+  }
+  
+  return new Promise((resolve) => {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
+      // 删除当前所有记录
+      db.run('DELETE FROM statistics', (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          resolve({ success: false, message: '删除现有记录失败' });
+          return;
+        }
+        
+        // 插入备份记录
+        if (backupData.records.length === 0) {
+          db.run('COMMIT', () => {
+            resolve({ success: true, message: '回滚成功，数据库已清空', count: 0 });
+          });
+          return;
+        }
+        
+        const stmt = db.prepare('INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time, session_id, extra_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        let completed = 0;
+        
+        backupData.records.forEach(record => {
+          stmt.run(
+            record.ip,
+            record.url,
+            record.path,
+            record.client_time,
+            record.server_time,
+            record.statistics_time,
+            record.session_id,
+            record.extra_info,
+            () => {
+              completed++;
+              if (completed === backupData.records.length) {
+                stmt.finalize(() => {
+                  db.run('COMMIT', () => {
+                    console.log(`回滚到备份: ${filename}`);
+                    resolve({ 
+                      success: true, 
+                      message: `回滚成功，恢复了 ${backupData.records.length} 条记录`,
+                      count: backupData.records.length
+                    });
+                  });
+                });
+              }
+            }
+          );
+        });
+      });
+    });
+  });
+}
+
+// 加载密钥配置
+function loadKeys() {
+  try {
+    if (fs.existsSync(KEYS_FILE)) {
+      const data = fs.readFileSync(KEYS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('加载密钥配置失败:', err.message);
+  }
+  // 返回默认配置
+  return {
+    uapis: { apiKey: '', enabled: false },
+    ip9: { apiKey: '', enabled: false },
+    github: { accessToken: '', enabled: false }
+  };
+}
+
+// 保存密钥配置
+function saveKeys(keys) {
+  try {
+    fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('保存密钥配置失败:', err.message);
+    return false;
+  }
+}
+
+// 初始化密钥配置文件（如果不存在）
+if (!fs.existsSync(KEYS_FILE)) {
+  saveKeys({
+    uapis: { apiKey: '', enabled: false },
+    ip9: { apiKey: '', enabled: false },
+    github: { accessToken: '', enabled: false }
+  });
+}
+
+// 全局密钥配置
+let apiKeys = loadKeys();
+
 // 安全头部设置
 app.use((req, res, next) => {
   // 防止XSS攻击
@@ -17,7 +251,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   // Content Security Policy
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; font-src 'self';");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'; connect-src 'self' https://api.github.com https://uapis.cn https://ip9.com.cn https://vip-84514370.ip9.com.cn;");
   next();
 });
 
@@ -41,7 +275,7 @@ function escapeHtml(str) {
 const ipCache = new Map();
 const CACHE_TTL = 86400000; // 24小时缓存
 
-// 查询IP信息
+// 查询IP信息（双通道：ip9为主，uapis为备用）
 async function fetchIpInfo(ip) {
   // 检查缓存
   const cached = ipCache.get(ip);
@@ -49,23 +283,39 @@ async function fetchIpInfo(ip) {
     return cached.data;
   }
 
-  // 调用 ip9.com.cn API
-  return new Promise((resolve, reject) => {
-    const url = `https://ip9.com.cn/get?ip=${encodeURIComponent(ip)}`;
+  // 尝试 ip9.com.cn（主通道）
+  let result = await fetchIp9Info(ip);
+  if (result) {
+    return result;
+  }
+
+  // ip9 失败，尝试 uapis.cn（备用通道）
+  // uapis 支持无 key 调用，无需强制启用
+  result = await fetchUapisInfo(ip);
+  if (result) {
+    return result;
+  }
+
+  return null;
+}
+
+// ip9.com.cn 查询
+async function fetchIp9Info(ip) {
+  return new Promise((resolve) => {
+    let url;
+    if (apiKeys.ip9.enabled && apiKeys.ip9.key) {
+      url = `https://vip-84514370.ip9.com.cn/get?token=${encodeURIComponent(apiKeys.ip9.key)}&ip=${encodeURIComponent(ip)}`;
+    } else {
+      url = `https://ip9.com.cn/get?ip=${encodeURIComponent(ip)}`;
+    }
     https.get(url, (res) => {
       let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
+      res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
         try {
           const result = JSON.parse(data);
           if (result.ret === 200) {
-            // 缓存结果
-            ipCache.set(ip, {
-              data: result.data,
-              timestamp: Date.now()
-            });
+            ipCache.set(ip, { data: result.data, timestamp: Date.now() });
             resolve(result.data);
           } else {
             resolve(null);
@@ -74,9 +324,54 @@ async function fetchIpInfo(ip) {
           resolve(null);
         }
       });
-    }).on('error', () => {
-      resolve(null);
+    }).on('error', () => resolve(null));
+  });
+}
+
+// uapis.cn 查询（备用通道）
+async function fetchUapisInfo(ip) {
+  return new Promise((resolve) => {
+    const url = `https://uapis.cn/api/v1/network/ipinfo?ip=${encodeURIComponent(ip)}&source=commercial`;
+    const options = {
+      hostname: 'uapis.cn',
+      path: `/api/v1/network/ipinfo?ip=${encodeURIComponent(ip)}&source=commercial`,
+      method: 'GET',
+      headers: {}
+    };
+
+    if (apiKeys.uapis.key) {
+      options.headers['Authorization'] = `Bearer ${apiKeys.uapis.key}`;
+    }
+
+    const req = https.get(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          if (result.code === 200 && result.data) {
+            // 统一数据格式
+            const normalized = {
+              ip: result.data.ip,
+              country: result.data.country || result.data.country_name,
+              province: result.data.province || result.data.region,
+              city: result.data.city,
+              isp: result.data.isp || result.data.operator,
+              info: result.data.info || `${result.data.country || ''} ${result.data.province || ''} ${result.data.city || ''} ${result.data.isp || ''}`.trim(),
+              source: 'uapis'
+            };
+            ipCache.set(ip, { data: normalized, timestamp: Date.now() });
+            resolve(normalized);
+          } else {
+            resolve(null);
+          }
+        } catch (e) {
+          resolve(null);
+        }
+      });
     });
+    req.on('error', () => resolve(null));
+    req.end();
   });
 }
 
@@ -482,7 +777,7 @@ function renumberStatistics() {
   }
 }
 
-app.delete('/api/statistics/:id', (req, res) => {
+app.delete('/api/statistics/:id', async (req, res) => {
   const sessionId = getSessionId(req);
   const id = parseInt(req.params.id);
   const force = req.query.force === '1';
@@ -497,6 +792,9 @@ app.delete('/api/statistics/:id', (req, res) => {
   }
   
   try {
+    // 删除前创建备份
+    await createBackup('single_delete');
+    
     const stmt = db.prepare('DELETE FROM statistics WHERE id = ?');
     stmt.bind([id]);
     stmt.step();
@@ -606,6 +904,14 @@ app.get('/version', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'version.html'));
 });
 
+app.get('/settings', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.redirect('/login');
+  }
+  
+  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
+});
+
 app.get('/logout', (req, res) => {
   const sessionId = getSessionId(req);
   const clientIp = req.ip || req.connection.remoteAddress;
@@ -617,7 +923,7 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-app.post('/api/statistics/batch-delete', (req, res) => {
+app.post('/api/statistics/batch-delete', async (req, res) => {
   const sessionId = getSessionId(req);
   const ids = req.body.ids;
   const force = req.body.force === true;
@@ -632,6 +938,9 @@ app.post('/api/statistics/batch-delete', (req, res) => {
   }
   
   try {
+    // 删除前创建备份
+    await createBackup('batch_delete');
+    
     // 将所有ID转换为数字并过滤有效值
     const validIds = ids.map(id => parseInt(id)).filter(id => !isNaN(id) && id > 0);
     if (validIds.length === 0) {
@@ -659,6 +968,99 @@ app.post('/api/statistics/batch-delete', (req, res) => {
   } catch (err) {
     console.error('批量删除失败:', err.message);
     return res.status(500).json({ code: -5, msg: '删除失败' });
+  }
+});
+
+// 备份管理接口
+
+// 获取备份列表
+app.get('/api/backups', async (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  
+  try {
+    const backups = await getBackupList();
+    res.json({ code: 0, data: backups });
+  } catch (err) {
+    console.error('获取备份列表失败:', err.message);
+    return res.status(500).json({ code: -2, msg: '获取失败' });
+  }
+});
+
+// 读取备份内容
+app.get('/api/backups/:filename', async (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  
+  const filename = req.params.filename;
+  
+  // 安全检查：防止路径遍历
+  if (!filename.startsWith('backup_') || !filename.endsWith('.json')) {
+    return res.json({ code: -2, msg: '无效的备份文件名' });
+  }
+  
+  try {
+    const backupData = await readBackup(filename);
+    if (backupData) {
+      res.json({ code: 0, data: backupData });
+    } else {
+      res.json({ code: -3, msg: '备份文件不存在或无法读取' });
+    }
+  } catch (err) {
+    console.error('读取备份失败:', err.message);
+    return res.status(500).json({ code: -4, msg: '读取失败' });
+  }
+});
+
+// 回滚到备份
+app.post('/api/backups/:filename/rollback', async (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  
+  const filename = req.params.filename;
+  
+  // 安全检查：防止路径遍历
+  if (!filename.startsWith('backup_') || !filename.endsWith('.json')) {
+    return res.json({ code: -2, msg: '无效的备份文件名' });
+  }
+  
+  try {
+    // 回滚前先创建当前状态的备份（以防回滚错误）
+    await createBackup('pre_rollback');
+    
+    const result = await rollbackToBackup(filename);
+    if (result.success) {
+      res.json({ code: 0, msg: result.message, count: result.count });
+    } else {
+      res.json({ code: -3, msg: result.message });
+    }
+  } catch (err) {
+    console.error('回滚失败:', err.message);
+    return res.status(500).json({ code: -4, msg: '回滚失败' });
+  }
+});
+
+// 手动创建备份
+app.post('/api/backups/create', async (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  
+  const reason = req.body.reason || 'manual';
+  
+  try {
+    const success = await createBackup(reason);
+    if (success) {
+      res.json({ code: 0, msg: '备份创建成功' });
+    } else {
+      res.json({ code: -2, msg: '备份创建失败' });
+    }
+  } catch (err) {
+    console.error('创建备份失败:', err.message);
+    return res.status(500).json({ code: -3, msg: '创建失败' });
   }
 });
 
@@ -736,13 +1138,22 @@ app.get('/api/query-ip', async (req, res) => {
   }
   
   const ip = req.query.ip;
+  const api = req.query.api; // 可选：ip9 或 uapis
   
   if (!isValidIp(ip)) {
     return res.json({ code: -2, msg: '无效的IP地址' });
   }
   
   try {
-    const ipInfo = await fetchIpInfo(ip);
+    let ipInfo;
+    
+    if (api === 'uapis') {
+      // 强制使用 uapis（支持无 key 调用）
+      ipInfo = await fetchUapisInfo(ip);
+    } else {
+      // 默认使用 ip9
+      ipInfo = await fetchIp9Info(ip);
+    }
     
     if (ipInfo) {
       res.json({ code: 0, data: ipInfo });
@@ -809,7 +1220,9 @@ app.get('/api/version', async (req, res) => {
   const errors = [];
   
   // 检查 .git 目录
-  const hasGitDir = fs.existsSync(path.join(__dirname, '.git'));
+  const gitDirPath = path.join(__dirname, '.git');
+  const hasGitDir = fs.existsSync(gitDirPath);
+  console.log(`[DEBUG] .git directory check: path=${gitDirPath}, exists=${hasGitDir}`);
   if (!hasGitDir) {
     errors.push('项目根目录缺少 .git 文件夹');
   }
@@ -819,46 +1232,57 @@ app.get('/api/version', async (req, res) => {
   let localSha = null;
   let remoteSha = null;
   let hasRemote = false;
+  let gitError = '';
   
   try {
     const { execSync } = require('child_process');
     
     // 检查 git 命令
-    execSync('git --version', { encoding: 'utf-8', stdio: 'pipe' });
+    const gitVersion = execSync('git --version', { encoding: 'utf-8', stdio: 'pipe' }).trim();
     hasGitCmd = true;
+    console.log(`[DEBUG] Git command available: ${gitVersion}`);
     
     if (hasGitDir) {
       // 获取本地最新 commit
       try {
-        localSha = execSync('git rev-parse HEAD', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        localSha = execSync('git rev-parse HEAD', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim();
+        console.log(`[DEBUG] Local SHA: ${localSha}`);
       } catch (e) {
         localSha = null;
+        gitError += `获取本地SHA失败: ${e.message}; `;
+        console.error(`[DEBUG] 获取本地SHA失败: ${e.message}`);
       }
       
       // 获取远程仓库
       try {
-        const remoteUrl = execSync('git remote get-url origin', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        const remoteUrl = execSync('git remote get-url origin', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim();
         hasRemote = remoteUrl.length > 0;
+        console.log(`[DEBUG] Remote URL: ${remoteUrl}, hasRemote=${hasRemote}`);
       } catch (e) {
         hasRemote = false;
+        gitError += `获取远程仓库失败: ${e.message}; `;
+        console.error(`[DEBUG] 获取远程仓库失败: ${e.message}`);
       }
       
       // 获取远程最新 commit
       if (hasRemote) {
         try {
-          execSync('git fetch origin', { encoding: 'utf-8', stdio: 'pipe' });
-          remoteSha = execSync('git rev-parse origin/main', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+          execSync('git fetch origin', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname });
+          remoteSha = execSync('git rev-parse origin/main', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim();
         } catch (e) {
           try {
-            remoteSha = execSync('git rev-parse origin/master', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+            remoteSha = execSync('git rev-parse origin/master', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim();
           } catch (e2) {
             remoteSha = null;
+            gitError += `获取远程SHA失败: ${e2.message}; `;
+            console.error(`[DEBUG] 获取远程SHA失败: ${e2.message}`);
           }
         }
       }
     }
   } catch (err) {
     console.error('Git 命令执行失败:', err.message);
+    gitError = err.message;
   }
   
   if (!hasGitCmd) {
@@ -868,14 +1292,17 @@ app.get('/api/version', async (req, res) => {
     errors.push('Git 远程仓库未配置');
   }
   
+  // 始终返回环境信息，即使有错误
+  const result = {
+    env: { hasGitDir, hasGitCmd, hasRemote },
+    debug: { gitDirPath, gitError }
+  };
+  
   if (errors.length > 0) {
     return res.json({
       code: -1,
       msg: '环境检查未通过',
-      data: {
-        env: { hasGitDir, hasGitCmd, hasRemote },
-        errors
-      }
+      data: { ...result, errors }
     });
   }
   
@@ -884,7 +1311,7 @@ app.get('/api/version', async (req, res) => {
   if (localSha && remoteSha && localSha !== remoteSha) {
     try {
       const { execSync } = require('child_process');
-      ahead = parseInt(execSync(`git rev-list --count ${remoteSha}..${localSha}`, { encoding: 'utf-8', stdio: 'pipe' }).trim()) || 0;
+      ahead = parseInt(execSync(`git rev-list --count ${remoteSha}..${localSha}`, { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim()) || 0;
     } catch (e) {
       ahead = 0;
     }
@@ -899,6 +1326,75 @@ app.get('/api/version', async (req, res) => {
       env: { hasGitDir, hasGitCmd, hasRemote }
     }
   });
+});
+
+// ======================== 密钥配置 API ========================
+
+app.get('/api/keys', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+
+  res.json({
+    code: 0,
+    data: {
+      uapis: {
+        apiKey: apiKeys.uapis.apiKey ? '******' : '',
+        enabled: apiKeys.uapis.enabled
+      },
+      ip9: {
+        apiKey: apiKeys.ip9.apiKey ? '******' : '',
+        enabled: apiKeys.ip9.enabled
+      },
+      github: {
+        accessToken: apiKeys.github.accessToken ? '******' : '',
+        enabled: apiKeys.github.enabled
+      }
+    }
+  });
+});
+
+app.post('/api/keys', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+
+  const { uapis, ip9, github } = req.body;
+
+  // 更新密钥配置
+  if (uapis !== undefined) {
+    if (typeof uapis.enabled === 'boolean') {
+      apiKeys.uapis.enabled = uapis.enabled;
+    }
+    if (typeof uapis.apiKey === 'string') {
+      apiKeys.uapis.apiKey = uapis.apiKey.trim();
+    }
+  }
+
+  if (ip9 !== undefined) {
+    if (typeof ip9.enabled === 'boolean') {
+      apiKeys.ip9.enabled = ip9.enabled;
+    }
+    if (typeof ip9.apiKey === 'string') {
+      apiKeys.ip9.apiKey = ip9.apiKey.trim();
+    }
+  }
+
+  if (github !== undefined) {
+    if (typeof github.enabled === 'boolean') {
+      apiKeys.github.enabled = github.enabled;
+    }
+    if (typeof github.accessToken === 'string') {
+      apiKeys.github.accessToken = github.accessToken.trim();
+    }
+  }
+
+  if (saveKeys(apiKeys)) {
+    logOperation('settings_update', null, sessionId, clientIp);
+    res.json({ code: 0, msg: '配置保存成功' });
+  } else {
+    res.json({ code: -1, msg: '保存失败' });
+  }
 });
 
 initDatabase().then(() => {

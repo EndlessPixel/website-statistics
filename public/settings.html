@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高级设置 - WebsiteStatistics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .nav-active {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .api-card {
+      transition: all 0.2s ease;
+    }
+    .api-card:hover {
+      transform: translateY(-2px);
+    }
+    .warning-badge {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    /* 自定义表格样式 */
+    .comparison-table td, .comparison-table th {
+      padding: 0.5rem 0.25rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .dark .comparison-table td, .dark .comparison-table th {
+      border-bottom-color: #2d3748;
+    }
+    .feature-badge {
+      background-color: #e6f7e6;
+      color: #2e7d32;
+    }
+    .dark .feature-badge {
+      background-color: #1e3a2e;
+      color: #81c784;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-neutral-900 min-h-screen flex flex-col">
+  <script src="/common.js"></script>
+  
+  <main class="flex-1 max-w-6xl mx-auto px-4 py-6 w-full">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">高级设置</h2>
+      <p class="text-gray-500 dark:text-gray-400">配置第三方 API 密钥以解锁高级功能</p>
+    </div>
+
+    <!-- 重要提示 -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <p class="text-sm font-medium text-blue-800 dark:text-blue-300">重要提示</p>
+          <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">本面板全部基础功能均可免费使用，程序本身不提供任何支付充值通道。如需提升接口调用限额、解锁第三方平台高级能力，请自行前往对应 API 官方平台充值购买额度、获取专属 Key；您填写的密钥仅保存在本地配置文件内，不会上传、中转、存储至任何远程服务器与云端。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- API 配置卡片 -->
+    <div class="grid gap-6">
+      <!-- uapis.cn - 完整价格方案 -->
+      <div class="api-card bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-neutral-800">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white">uapis.cn</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">免费、稳定、快速的公共 API。</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="uapisEnabled" class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 dark:bg-neutral-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+        <div class="p-4">
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+            <input type="text" id="uapisKey" class="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm" placeholder="输入 uapis.cn API Key">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">免费套餐无需 Key 也可测试，但使用自己的 Key 可累加积分额度</p>
+          </div>
+
+          <!-- 免费额度区域 -->
+          <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 mb-4">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">免费包</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">每月自动重置，无需付费</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div class="flex justify-between items-center p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-gray-600 dark:text-gray-300">👤 访客模式</span>
+                <span class="font-semibold text-gray-900 dark:text-white">1,500 积分/月</span>
+              </div>
+              <div class="flex justify-between items-center p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-gray-600 dark:text-gray-300">🔐 登录用户</span>
+                <span class="font-semibold text-gray-900 dark:text-white">3,500 积分/月</span>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">* 积分与 API 调用次数不一定对应，请参考<a href="https://uapis.cn/pricing" target="_blank">官方价格列表</a>，每月初自动刷新</p>
+          </div>
+
+          <!-- 付费套餐 - 永久有效 -->
+          <div class="mb-2">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">付费包</span>
+              <span class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>永久有效，不会过期</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- 入门包 -->
+              <div class="border border-gray-200 dark:border-neutral-700 rounded-lg p-3 bg-white dark:bg-neutral-800/60">
+                <div class="font-medium text-gray-900 dark:text-white">入门包</div>
+                <div class="mt-1 flex items-baseline gap-1">
+                  <span class="text-xl font-bold text-gray-900 dark:text-white">¥4.9</span>
+                  <span class="text-xs text-gray-400 line-through">¥9.9</span>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">2 万积分</div>
+                <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">≈ 0.025 分/次</div>
+              </div>
+              <!-- 标准包 -->
+              <div class="border border-gray-200 dark:border-neutral-700 rounded-lg p-3 bg-white dark:bg-neutral-800/60">
+                <div class="font-medium text-gray-900 dark:text-white">标准包</div>
+                <div class="mt-1 flex items-baseline gap-1">
+                  <span class="text-xl font-bold text-gray-900 dark:text-white">¥24.9</span>
+                  <span class="text-xs text-gray-400 line-through">¥29.9</span>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">10 万积分</div>
+                <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">≈ 0.025 分/次</div>
+              </div>
+              <!-- 专业包 -->
+              <div class="border border-gray-200 dark:border-neutral-700 rounded-lg p-3 bg-white dark:bg-neutral-800/60">
+                <div class="font-medium text-gray-900 dark:text-white">专业包</div>
+                <div class="mt-1 flex items-baseline gap-1">
+                  <span class="text-xl font-bold text-gray-900 dark:text-white">¥49.9</span>
+                  <span class="text-xs text-gray-400 line-through">¥54.9</span>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">25 万积分</div>
+                <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">≈ 0.02 分/次</div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">* 所有付费包均为买断制，积分用完可叠加购买，永不过期</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">⚠️ 此处的价格列表仅为参考，官方可能随时更新价格，此处更新可能不及时，请以官方文档为准</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ip9.com.cn - 完整功能对比表 -->
+      <div class="api-card bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-neutral-800">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white">ip9.com.cn</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">企业级 IP 库 · IPv4/IPv6 双栈解析</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="ip9Enabled" class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 dark:bg-neutral-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+        <div class="p-4">
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+            <input type="text" id="ip9Key" class="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm" placeholder="输入 ip9.com.cn API Key">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">免费版无需 Key 即可体验，VIP 版本需绑定 Key 享受高并发</p>
+          </div>
+          
+          <!-- 套餐价格明细 -->
+          <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 mb-4">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">套餐价格明细</h4>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">25 万次</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-gray-900 dark:text-white">¥49</span>
+                  <span class="text-xs px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300">仅限新客</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">100 万次 <span class="text-xs text-emerald-600 dark:text-emerald-400 ml-1">5.1折</span></span>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-gray-900 dark:text-white">¥99</span>
+                  <span class="text-xs px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300">热门</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">500 万次 <span class="text-xs text-emerald-600 dark:text-emerald-400 ml-1">4.1折</span></span>
+                <span class="font-semibold text-gray-900 dark:text-white">¥399</span>
+              </div>
+              <div class="flex items-center justify-between p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">1000 万次 <span class="text-xs text-emerald-600 dark:text-emerald-400 ml-1">3.6折</span></span>
+                <span class="font-semibold text-gray-900 dark:text-white">¥699</span>
+              </div>
+              <div class="flex items-center justify-between p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">5000 万次 <span class="text-xs text-emerald-600 dark:text-emerald-400 ml-1">3.1折</span></span>
+                <span class="font-semibold text-gray-900 dark:text-white">¥2999</span>
+              </div>
+              <div class="flex items-center justify-between p-2 bg-white dark:bg-neutral-700/50 rounded-lg">
+                <span class="text-sm text-gray-700 dark:text-gray-300">10000 万次 <span class="text-xs text-emerald-600 dark:text-emerald-400 ml-1">2.6折</span></span>
+                <span class="font-semibold text-gray-900 dark:text-white">¥4999</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 详细对比表格 -->
+          <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg overflow-x-auto">
+            <table class="w-full text-xs md:text-sm">
+              <thead class="bg-gray-100 dark:bg-neutral-700">
+                <tr>
+                  <th class="text-left text-gray-700 dark:text-gray-200 py-2 px-3">对比项</th>
+                  <th class="text-left text-gray-700 dark:text-gray-200 py-2 px-3">免费版</th>
+                  <th class="text-left text-gray-700 dark:text-gray-200 py-2 px-3 bg-indigo-50 dark:bg-indigo-900/30">VIP版</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">适用群体</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">个人网站，开发测试，无SLA保证</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">中大型规模网站/APP，电商、贸易、娱乐、游戏等</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">计费方式</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">免费 (受频率限制)</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">按次计费，低至 0.5元/万次</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">频率限制</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">60 次/分钟</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">100,000 次/分钟</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">机房线路</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">社区赞助节点</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">阿里云BGP(国内、国际双线)</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">VIP专属字段</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">—</td>
+                  <td class="py-2 px-3 bg-indigo-50/30 dark:bg-indigo-900/20">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">✓ 含ASN/运营商/经纬度/时区</span>
+                  </td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">IP范围支持</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">IPv4 基础库</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">IPv4 + IPv6 完整库</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">SLA 服务等级</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">不保证可用性</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">99.95% 高可用保障</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">数据更新频率</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">不定期更新</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">实时/每周增量更新</td>
+                </tr>
+                <tr class="hover:bg-gray-100/50 dark:hover:bg-neutral-700/50">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">技术支持</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300">社区论坛</td>
+                  <td class="py-2 px-3 text-gray-700 dark:text-gray-300 bg-indigo-50/30 dark:bg-indigo-900/20">专属企业微信群/工单系统</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="p-3 text-xs space-y-2 border-t border-gray-200 dark:border-neutral-700">
+              <p class="text-gray-500 dark:text-gray-400">💡 VIP 版支持按需购买流量包，查询量越大单价越低，适合生产环境。</p>
+              <p class="text-gray-400 dark:text-gray-500">⚠️ 此处的价格列表仅为参考，官方可能随时更新价格，此处更新可能不及时，请以官方文档为准</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GitHub API - 完整速率限制说明 + 增强身份验证方案 -->
+      <div class="api-card bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-neutral-800">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white">GitHub API</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">仓库信息 · 贡献图 · 项目元数据获取</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="githubEnabled" class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 dark:bg-neutral-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+        <div class="p-4">
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Access Token (可选)</label>
+            <input type="text" id="githubToken" class="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm" placeholder="输入 GitHub Personal Access Token">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">在 GitHub 设置中创建 <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">Personal Access Token (classic)</a>，无需额外权限即可提升配额</p>
+          </div>
+
+          <!-- 速率限制详情表格 -->
+          <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg overflow-hidden mb-4">
+            <table class="comparison-table w-full text-xs md:text-sm">
+              <thead class="bg-gray-100 dark:bg-neutral-700/50">
+                <tr>
+                  <th class="text-left text-gray-700 dark:text-gray-200 py-2 px-3">认证方式</th>
+                  <th class="text-left text-gray-700 dark:text-gray-200 py-2 px-3">请求限制</th>
+                  <th class="text-left text-gray-700 dark:text-gray-200 py-2 px-3">适用场景</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-gray-200 dark:border-neutral-700">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">未认证 (IP限制)</td>
+                  <td class="py-2 px-3">60 次/小时</td>
+                  <td class="py-2 px-3 text-gray-500 dark:text-gray-400">仅测试或极低流量站点</td>
+                </tr>
+                <tr class="border-b border-gray-200 dark:border-neutral-700">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">Personal Access Token</td>
+                  <td class="py-2 px-3"><span class="font-semibold text-emerald-600 dark:text-emerald-400">5,000 次/小时</span></td>
+                  <td class="py-2 px-3 text-gray-500 dark:text-gray-400">个人开发者/普通项目(推荐)</td>
+                </tr>
+                <tr class="border-b border-gray-200 dark:border-neutral-700">
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">GitHub App 安装令牌</td>
+                  <td class="py-2 px-3">5,000 ~ 15,000 次/小时*</td>
+                  <td class="py-2 px-3 text-gray-500 dark:text-gray-400">企业级集成/高并发场景</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">OAuth App Token</td>
+                  <td class="py-2 px-3">同授权用户 Token 限制</td>
+                  <td class="py-2 px-3 text-gray-500 dark:text-gray-400">用户授权登录类应用</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 额外说明卡片：GitHub App 高级配额 -->
+          <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 rounded-lg p-3">
+            <div class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <div class="text-xs text-amber-800 dark:text-amber-300">
+                <p class="font-medium">📈 进阶配额说明：</p>
+                <ul class="list-disc list-inside mt-1 space-y-0.5 text-amber-700 dark:text-amber-400/90">
+                  <li>使用<strong>安装访问令牌 (Installation Access Token)</strong> 认证的 GitHub App，默认限制为 <strong>5,000次/小时</strong>。</li>
+                  <li>若安装在 <strong>GitHub Enterprise Cloud</strong> 组织上，限制提升至 <strong>15,000次/小时</strong>。</li>
+                  <li>其他 Enterprise Cloud 之外的安装，速率限制根据用户/仓库数量扩展，最高可达 <strong>12,500次/小时</strong>。</li>
+                  <li class="mt-1 text-gray-600 dark:text-gray-400">💡 对于绝大多数统计需求，Personal Access Token (5k次/小时) 已完全足够，可缓存数据进一步降低调用频率。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            令牌仅用于提高请求速率，不会记录您的私有仓库数据，请妥善保管 Token。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 保存按钮区域 -->
+    <div class="mt-6 flex justify-end gap-3">
+      <button onclick="resetSettings()" class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors">
+        重置
+      </button>
+      <button onclick="saveSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">
+        保存配置
+      </button>
+    </div>
+
+    <!-- 配置文件信息 + 安全声明 -->
+    <div class="mt-6 bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 flex flex-wrap justify-between items-center gap-3">
+      <div>
+        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">配置文件信息</h4>
+        <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <span>配置文件: <code class="bg-white dark:bg-neutral-700 px-2 py-1 rounded">keys.json</code></span>
+          <span>存储位置: 本地服务器 (private/config)</span>
+          <span class="text-green-600 dark:text-green-400">✓ 密钥仅本地存储，零外发</span>
+        </div>
+      </div>
+      <div class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        数据安全·自主可控
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof AppUtils !== 'undefined') {
+        AppUtils.initTheme();
+        AppUtils.renderNavigationBar();
+        AppUtils.renderFooter();
+      }
+      loadSettings();
+    });
+
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/keys');
+        const data = await response.json();
+        
+        if (data.code === 0 && data.data) {
+          const keys = data.data;
+          
+          if (keys.uapis) {
+            document.getElementById('uapisKey').value = keys.uapis.apiKey || '';
+            document.getElementById('uapisEnabled').checked = !!keys.uapis.enabled;
+          }
+          
+          if (keys.ip9) {
+            document.getElementById('ip9Key').value = keys.ip9.apiKey || '';
+            document.getElementById('ip9Enabled').checked = !!keys.ip9.enabled;
+          }
+          
+          if (keys.github) {
+            document.getElementById('githubToken').value = keys.github.accessToken || '';
+            document.getElementById('githubEnabled').checked = !!keys.github.enabled;
+          }
+        }
+      } catch (error) {
+        console.error('加载配置失败:', error);
+      }
+    }
+
+    async function saveSettings() {
+      const settings = {
+        uapis: {
+          apiKey: document.getElementById('uapisKey').value.trim(),
+          enabled: document.getElementById('uapisEnabled').checked
+        },
+        ip9: {
+          apiKey: document.getElementById('ip9Key').value.trim(),
+          enabled: document.getElementById('ip9Enabled').checked
+        },
+        github: {
+          accessToken: document.getElementById('githubToken').value.trim(),
+          enabled: document.getElementById('githubEnabled').checked
+        }
+      };
+
+      try {
+        const response = await fetch('/api/keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
+        });
+        
+        const data = await response.json();
+        
+        if (data.code === 0) {
+          alert('✓ 配置保存成功，服务将自动应用新密钥');
+        } else {
+          alert('保存失败: ' + (data.msg || '未知错误'));
+        }
+      } catch (error) {
+        console.error('保存配置失败:', error);
+        alert('网络错误，保存失败，请检查后端服务是否正常');
+      }
+    }
+
+    function resetSettings() {
+      if (confirm('确定要重置所有 API 配置吗？这将清空所有已保存的密钥和开关状态。')) {
+        document.getElementById('uapisKey').value = '';
+        document.getElementById('uapisEnabled').checked = false;
+        document.getElementById('ip9Key').value = '';
+        document.getElementById('ip9Enabled').checked = false;
+        document.getElementById('githubToken').value = '';
+        document.getElementById('githubEnabled').checked = false;
+      }
+    }
+  </script>
+</body>
+</html>

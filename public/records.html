@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>访问记录 - 网页访问统计</title>
-  
-  <!-- 防止深色模式闪烁 -->
+  <title>访问记录 - WebsiteStatistics</title>
   <script>
     (function() {
       const savedTheme = localStorage.getItem('theme');
@@ -15,139 +13,83 @@
       }
     })();
   </script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-  </style>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
-  <!-- 顶部导航栏 -->
-  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-8">
-          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
-          <div class="hidden md:flex items-center gap-1">
-            <a href="/overview" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">数据概览</a>
-            <a href="/charts" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
-            <a href="/records" class="nav-item nav-active px-4 py-2 rounded-lg text-sm font-medium transition-colors">访问记录</a>
-            <a href="/logs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
-            <a href="/api-docs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
-            <a href="/repo" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">仓库信息</a>
-            <a href="/version" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">版本管理</a>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
-          </button>
-          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">退出</a>
-        </div>
-      </div>
-    </div>
-    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
-      <a href="/overview" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">API文档</a>
-    </div>
-  </nav>
-  
-  <!-- 主内容区 -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-2xl font-bold mb-6">访问记录</h1>
     
-    <!-- 工具栏 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-neutral-800 mb-4 flex flex-wrap items-center gap-4">
-      <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-        <input type="checkbox" id="autoRefresh" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600">
-        <span>自动刷新</span>
-      </label>
-      <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-        <span>间隔:</span>
-        <select id="refreshInterval" class="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm">
-          <option value="30">30秒</option>
-          <option value="60" selected>1分钟</option>
-          <option value="300">5分钟</option>
-        </select>
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 mb-6">
+      <div class="p-4 border-b border-gray-200 dark:border-neutral-800 flex flex-wrap items-center gap-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="selectAll" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600">
+          <span class="text-sm text-gray-700 dark:text-gray-300">全选</span>
+        </label>
+        <span id="selectedCount" class="text-sm text-gray-500 dark:text-gray-400">已选择 0 条</span>
+        <button id="batchDeleteBtn" onclick="AppUtils.handleBatchDelete(false, loadRecords)" disabled class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+          批量删除
+        </button>
+        <button onclick="AppUtils.handleBatchDelete(true, loadRecords)" disabled id="forceBatchDeleteBtn" class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+          强制批量删除
+        </button>
+        <button onclick="openBackupModal()" class="ml-auto px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors">
+          📦 备份管理
+        </button>
       </div>
-      <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-        <span>每页:</span>
-        <input type="number" id="pageSize" value="25" min="1" max="100" class="w-16 px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm">
-      </div>
-      <button onclick="AppUtils.applyPageSize()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors">应用</button>
-      <div class="flex items-center gap-2 ml-auto">
-        <button id="deleteSelectedBtn" onclick="AppUtils.handleBatchDelete()" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>删除选中</button>
-        <span id="selectedCount" class="text-sm text-gray-500 dark:text-gray-400"></span>
-      </div>
-    </div>
-    
-    <!-- 表格 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+      
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 dark:bg-neutral-800">
             <tr>
-              <th class="px-4 py-3 text-left">
-                <input type="checkbox" id="selectAll" onchange="AppUtils.toggleSelectAll()" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600">
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">用户IP</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">访问URL</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">请求路径</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">客户端时间</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">服务器时间</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">选择</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ID</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">用户IP</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">URL</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">路径</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">用户端时间</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">服务器时间</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">统计时间</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">操作</th>
             </tr>
           </thead>
           <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-neutral-800">
-            <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">加载中...</td></tr>
+            <tr><td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">加载中...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
     
-    <!-- 分页 -->
-    <div id="pagination" class="mt-4 flex flex-wrap items-center justify-between gap-4 hidden">
-      <div class="text-sm text-gray-500 dark:text-gray-400">
-        共 <span id="totalRecords">0</span> 条记录，当前第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页
+    <div id="pagination" class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-500 dark:text-gray-400">每页:</span>
+        <input type="number" id="pageSizeInput" value="25" min="1" max="100" class="w-16 px-2 py-1 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm">
+        <button onclick="applyPageSize()" class="px-3 py-1 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm transition-colors">应用</button>
       </div>
-      <div class="flex items-center gap-2">
-        <button onclick="AppUtils.prevPage()" id="prevBtn" class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">上一页</button>
-        <button onclick="AppUtils.nextPage()" id="nextBtn" class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">下一页</button>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-500 dark:text-gray-400">共 <span id="totalRecords">0</span> 条记录，当前第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页</span>
+        <button onclick="AppUtils.prevPage(loadRecords)" id="prevBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50">上一页</button>
+        <button onclick="AppUtils.nextPage(loadRecords)" id="nextBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50">下一页</button>
       </div>
     </div>
   </main>
   
-  <!-- IP信息模态框 -->
-  <div id="ipModal" class="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold">IP归属地信息</h3>
-        <button onclick="AppUtils.closeIpModal()" class="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <!-- IP信息弹窗 -->
+  <div id="ipModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden">
+      <div class="p-6 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">IP信息查询</h3>
+        <button onclick="AppUtils.closeIpModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
       </div>
-      <div id="ipInfo" class="space-y-3"></div>
+      <div id="ipInfoContent" class="p-6">
+        <div class="text-center text-gray-500 dark:text-gray-400 py-8">加载中...</div>
+      </div>
     </div>
   </div>
   
@@ -155,27 +97,20 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
-      AppUtils.renderNavigation();
+      AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       AppUtils.resetPaginationState();
-      loadTableData();
-      AppUtils.setupAutoRefresh(loadTableData);
+      loadRecords();
       
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const mobileMenu = document.getElementById('mobileMenu');
-      if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
+      document.getElementById('selectAll').addEventListener('change', function(e) {
+        AppUtils.toggleSelectAll(e.target.checked);
+      });
     });
     
-    async function loadTableData() {
+    async function loadRecords() {
       try {
-        const page = parseInt(sessionStorage.getItem('currentPage') || '1');
-        const pageSize = parseInt(document.getElementById('pageSize').value) || 25;
-        
-        const response = await fetch(`/api/records?page=${page}&pageSize=${pageSize}`);
+        const state = AppUtils.getPaginationState();
+        const response = await fetch(`/api/records?page=${state.currentPage}&pageSize=${state.currentPageSize}`);
         const data = await response.json();
         
         if (data.code === 0) {
@@ -184,54 +119,285 @@
         }
       } catch (error) {
         console.error('获取数据失败:', error);
-        document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">加载失败</td></tr>';
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-red-500">加载失败</td></tr>';
       }
     }
     
     function renderTable(records) {
-      const tbody = document.getElementById('tableBody');
+      const container = document.getElementById('tableBody');
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">暂无数据</td></tr>';
+        container.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">暂无数据</td></tr>';
         return;
       }
       
-      tbody.innerHTML = records.map(record => `
+      container.innerHTML = records.map(record => `
         <tr class="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
           <td class="px-4 py-3">
-            <input type="checkbox" class="record-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600" value="${record.id}" onchange="AppUtils.toggleRowSelect()">
+            <input type="checkbox" class="row-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600" data-id="${record.id}">
           </td>
-          <td class="px-4 py-3 text-sm">${record.id}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${record.id}</td>
           <td class="px-4 py-3">
-            <button onclick="AppUtils.queryIp('${record.ip}')" class="text-blue-600 dark:text-blue-400 hover:underline">${record.ip}</button>
+            <span class="text-sm text-gray-900 dark:text-white">${record.ip}</span>
+            <button onclick="AppUtils.queryIp('${record.ip}')" class="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700">查询</button>
           </td>
-          <td class="px-4 py-3 text-sm max-w-xs truncate" title="${record.url || '-'}">${record.url || '-'}</td>
-          <td class="px-4 py-3 text-sm max-w-xs truncate" title="${record.path || '-'}">${record.path || '-'}</td>
-          <td class="px-4 py-3 text-sm">${record.client_time ? AppUtils.formatTime(record.client_time) : '-'}</td>
-          <td class="px-4 py-3 text-sm">${record.server_time ? AppUtils.formatTime(record.server_time) : '-'}</td>
+          <td class="px-4 py-3 text-sm text-gray-900 dark:text-white truncate max-w-[200px]" title="${record.url}">${record.url}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${record.path}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${AppUtils.formatTime(record.client_time)}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${AppUtils.formatTime(record.server_time)}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${AppUtils.formatTime(record.statistics_time)}</td>
           <td class="px-4 py-3">
-            <button onclick="AppUtils.deleteRecord(${record.id})" class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm">删除</button>
+            <button onclick="AppUtils.handleDelete(${record.id}, event, loadRecords)" class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm">删除</button>
+          </td>
+        </tr>
+      `).join('');
+      
+      document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          AppUtils.toggleRowSelect(parseInt(this.dataset.id));
+        });
+      });
+    }
+    
+    function updatePagination(pagination) {
+      AppUtils.updatePagination(
+        pagination,
+        document.getElementById('totalRecords'),
+        null,
+        document.getElementById('prevBtn'),
+        document.getElementById('nextBtn')
+      );
+      document.getElementById('currentPage').textContent = pagination.page;
+      document.getElementById('totalPages').textContent = pagination.totalPages;
+    }
+    
+    function applyPageSize() {
+      const inputValue = document.getElementById('pageSizeInput').value.trim();
+      const newSize = parseInt(inputValue);
+      if (!isNaN(newSize) && newSize >= 1 && newSize <= 100) {
+        AppUtils.applyPageSize(newSize, loadRecords);
+      } else {
+        alert('每页数量必须在1-100之间');
+        const state = AppUtils.getPaginationState();
+        document.getElementById('pageSizeInput').value = state.currentPageSize;
+      }
+    }
+    
+    // 备份管理功能
+    let currentBackups = [];
+    
+    function openBackupModal() {
+      document.getElementById('backupModal').style.display = 'block';
+      loadBackupList();
+    }
+    
+    async function loadBackupList() {
+      try {
+        const response = await fetch('/api/backups');
+        const data = await response.json();
+        
+        if (data.code === 0) {
+          currentBackups = data.data;
+          renderBackupList(data.data);
+        }
+      } catch (error) {
+        console.error('获取备份列表失败:', error);
+      }
+    }
+    
+    function renderBackupList(backups) {
+      const container = document.getElementById('backupList');
+      if (!backups || backups.length === 0) {
+        container.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">暂无备份</td></tr>';
+        return;
+      }
+      
+      const reasonLabels = {
+        'single_delete': '单条删除',
+        'batch_delete': '批量删除',
+        'pre_rollback': '回滚前备份',
+        'manual': '手动备份'
+      };
+      
+      container.innerHTML = backups.map((backup, index) => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
+          <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${index + 1}</td>
+          <td class="px-4 py-3">
+            <div class="font-medium text-gray-900 dark:text-white">${backup.date}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">${backup.filename}</div>
+          </td>
+          <td class="px-4 py-3 text-sm">
+            <span class="px-2 py-1 rounded text-xs ${getReasonClass(backup.reason)}">${reasonLabels[backup.reason] || backup.reason}</span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <button onclick="viewBackup('${backup.filename}')" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">查看</button>
+              <button onclick="rollbackTo('${backup.filename}')" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded">回滚</button>
+            </div>
           </td>
         </tr>
       `).join('');
     }
     
-    function updatePagination(pagination) {
-      if (!pagination) return;
+    function getReasonClass(reason) {
+      const classes = {
+        'single_delete': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+        'batch_delete': 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+        'pre_rollback': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+        'manual': 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+      };
+      return classes[reason] || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400';
+    }
+    
+    async function viewBackup(filename) {
+      try {
+        const response = await fetch(`/api/backups/${filename}`);
+        const data = await response.json();
+        
+        if (data.code === 0) {
+          const backupData = data.data;
+          document.getElementById('backupDetailContent').innerHTML = `
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600 dark:text-gray-400">备份时间</span>
+                <span class="text-sm font-medium">${new Date(backupData.timestamp).toLocaleString('zh-CN')}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600 dark:text-gray-400">记录数量</span>
+                <span class="text-sm font-medium">${backupData.count} 条</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600 dark:text-gray-400">备份原因</span>
+                <span class="text-sm font-medium">${backupData.reason}</span>
+              </div>
+              <div class="border-t border-gray-200 dark:border-neutral-700 pt-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">前10条记录预览:</p>
+                <div class="max-h-40 overflow-y-auto">
+                  ${backupData.records.slice(0, 10).map((record, i) => `
+                    <div class="text-xs text-gray-600 dark:text-gray-400 py-1 border-b border-gray-100 dark:border-neutral-800">
+                      ${i + 1}. IP: ${record.ip} | URL: ${record.url} | 时间: ${AppUtils.formatTime(record.statistics_time)}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+          document.getElementById('backupModal').style.display = 'none';
+          document.getElementById('backupDetailModal').style.display = 'block';
+        }
+      } catch (error) {
+        console.error('查看备份失败:', error);
+      }
+    }
+    
+    async function rollbackTo(filename) {
+      if (!confirm('确定要回滚到此备份吗？当前数据将被替换！')) {
+        return;
+      }
       
-      // 更新分页状态
-      paginationState.currentPage = pagination.page;
-      paginationState.totalPages = pagination.totalPages;
-      paginationState.currentPageSize = pagination.pageSize;
-      
-      document.getElementById('totalRecords').textContent = pagination.total;
-      document.getElementById('currentPage').textContent = pagination.page;
-      document.getElementById('totalPages').textContent = pagination.totalPages;
-      
-      document.getElementById('prevBtn').disabled = pagination.page <= 1;
-      document.getElementById('nextBtn').disabled = pagination.page >= pagination.totalPages;
-      
-      document.getElementById('pagination').classList.remove('hidden');
+      try {
+        const response = await fetch(`/api/backups/${filename}/rollback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        
+        if (data.code === 0) {
+          alert(data.msg);
+          loadRecords();
+          loadBackupList();
+        } else {
+          alert('回滚失败: ' + data.msg);
+        }
+      } catch (error) {
+        console.error('回滚失败:', error);
+        alert('回滚失败');
+      }
+    }
+    
+    async function createManualBackup() {
+      try {
+        const response = await fetch('/api/backups/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'manual' })
+        });
+        const data = await response.json();
+        
+        if (data.code === 0) {
+          alert('备份创建成功');
+          loadBackupList();
+        } else {
+          alert('备份创建失败: ' + data.msg);
+        }
+      } catch (error) {
+        console.error('创建备份失败:', error);
+        alert('备份创建失败');
+      }
+    }
+    
+    function closeBackupModal() {
+      document.getElementById('backupModal').style.display = 'none';
+    }
+    
+    function closeBackupDetailModal() {
+      document.getElementById('backupDetailModal').style.display = 'none';
+      document.getElementById('backupModal').style.display = 'block';
     }
   </script>
+  
+  <!-- 备份管理弹窗 -->
+  <div id="backupModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+      <div class="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center">
+        <h3 class="font-semibold text-gray-900 dark:text-white">📦 备份管理</h3>
+        <button onclick="closeBackupModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto max-h-[60vh]">
+        <div class="mb-4 flex justify-between items-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400">共 ${currentBackups.length} 个备份（最多保留25个）</p>
+          <button onclick="createManualBackup()" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg">
+            + 手动备份
+          </button>
+        </div>
+        <table class="w-full">
+          <thead class="bg-gray-50 dark:bg-neutral-800">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">备份时间</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">类型</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">操作</th>
+            </tr>
+          </thead>
+          <tbody id="backupList">
+            <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 备份详情弹窗 -->
+  <div id="backupDetailModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-xl max-w-lg w-full mx-4">
+      <div class="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center">
+        <h3 class="font-semibold text-gray-900 dark:text-white">备份详情</h3>
+        <button onclick="closeBackupDetailModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="backupDetailContent" class="p-4">
+        <div class="text-center text-gray-500 dark:text-gray-400 py-8">加载中...</div>
+      </div>
+      <div class="p-4 border-t border-gray-200 dark:border-neutral-800 flex justify-end gap-2">
+        <button onclick="closeBackupDetailModal()" class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm">返回</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

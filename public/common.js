@@ -49,7 +49,7 @@ function updateThemeUI(isDark) {
  */
 function renderNavigation() {
   const currentPath = window.location.pathname;
-  
+
   document.querySelectorAll('.nav-item').forEach(btn => {
     const href = btn.getAttribute('href');
     if (href === currentPath || (href === '/overview' && (currentPath === '/' || currentPath === ''))) {
@@ -58,6 +58,78 @@ function renderNavigation() {
       btn.classList.remove('nav-active');
     }
   });
+}
+
+// ======================== 导航栏组件 ========================
+
+const NAV_ITEMS = [
+  { path: '/overview', label: '数据概览' },
+  { path: '/charts', label: '图表分析' },
+  { path: '/records', label: '访问记录' },
+  { path: '/logs', label: '操作日志' },
+  { path: '/api-docs', label: 'API文档' },
+  { path: '/repo', label: '仓库信息' },
+  { path: '/version', label: '版本管理' },
+  { path: '/settings', label: '高级设置' }
+];
+
+/**
+ * 渲染顶部导航栏
+ */
+function renderNavigationBar() {
+  if (document.querySelector('nav.site-nav')) return;
+  
+  const currentPath = window.location.pathname;
+  
+  const nav = document.createElement('nav');
+  nav.className = 'site-nav bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40';
+  nav.innerHTML = `
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-8">
+          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
+          <div class="hidden md:flex items-center gap-1">
+            ${NAV_ITEMS.map(item => `
+              <a href="${item.path}" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentPath === item.path ? 'nav-active' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800'
+              }">${item.label}</a>
+            `).join('')}
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"></circle>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            </svg>
+          </button>
+          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700">退出</a>
+        </div>
+      </div>
+    </div>
+    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
+      ${NAV_ITEMS.map(item => `
+        <a href="${item.path}" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium ${
+          currentPath === item.path ? '' : 'text-gray-600 dark:text-gray-400'
+        }">${item.label}</a>
+      `).join('')}
+    </div>
+  `;
+  
+  document.body.insertBefore(nav, document.body.firstChild);
+  
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  if (mobileMenuBtn && mobileMenu) {
+    mobileMenuBtn.addEventListener('click', function() {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
 }
 
 // ======================== Footer ========================
@@ -226,10 +298,12 @@ function updateSelectedCount() {
   const count = paginationState.selectedIds.size;
   const countEl = document.getElementById('selectedCount');
   const batchBtn = document.getElementById('batchDeleteBtn');
+  const forceBatchBtn = document.getElementById('forceBatchDeleteBtn');
   const selectAll = document.getElementById('selectAll');
   
   if (countEl) countEl.textContent = `已选择 ${count} 条`;
   if (batchBtn) batchBtn.disabled = count === 0;
+  if (forceBatchBtn) forceBatchBtn.disabled = count === 0;
   if (selectAll) {
     const checkboxes = document.querySelectorAll('input[type="checkbox"].row-checkbox');
     selectAll.checked = count > 0 && checkboxes.length === count;
@@ -239,20 +313,21 @@ function updateSelectedCount() {
 /**
  * 全选/取消全选
  */
-function toggleSelectAll() {
-  const checkboxes = document.querySelectorAll('input[type="checkbox"].row-checkbox');
+function toggleSelectAll(checked) {
   const selectAll = document.getElementById('selectAll');
-  
+  const actualChecked = checked !== undefined ? checked : selectAll.checked;
+
+  const checkboxes = document.querySelectorAll('input[type="checkbox"].row-checkbox');
   checkboxes.forEach(cb => {
-    cb.checked = selectAll.checked;
+    cb.checked = actualChecked;
     const id = parseInt(cb.dataset.id);
-    if (selectAll.checked) {
+    if (actualChecked) {
       paginationState.selectedIds.add(id);
     } else {
       paginationState.selectedIds.delete(id);
     }
   });
-  
+
   updateSelectedCount();
 }
 
@@ -378,28 +453,74 @@ function batchDelete(force = false, callback) {
  */
 function queryIp(ip) {
   const modal = document.getElementById('ipModal');
-  const content = document.getElementById('ipModalContent');
+  const content = document.getElementById('ipInfoContent');
   
   if (!modal || !content) {
     console.error('IP查询模态框未找到');
     return;
   }
   
-  content.innerHTML = '<p>正在查询...</p>';
+  // 显示API选择弹窗
+  content.innerHTML = `
+    <div class="text-center">
+      <p class="text-gray-700 dark:text-gray-300 mb-4">请选择查询方式</p>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="AppUtils.executeIpQuery('${ip}', 'ip9')" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex flex-col items-center">
+          <span class="font-medium">IP9</span>
+          <span class="text-xs opacity-80">主通道</span>
+        </button>
+        <button onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" class="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex flex-col items-center">
+          <span class="font-medium">uapis</span>
+          <span class="text-xs opacity-80">备用通道</span>
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">免费用户默认使用IP9通道，查询失败后可尝试uapis通道</p>
+    </div>
+  `;
   modal.style.display = 'block';
+}
+
+/**
+ * 执行IP查询
+ */
+function executeIpQuery(ip, api) {
+  const content = document.getElementById('ipInfoContent');
+  content.innerHTML = `
+    <div class="text-center py-4">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">正在通过 ${api === 'ip9' ? 'IP9' : 'uapis'} 查询...</p>
+    </div>
+  `;
   
-  fetch(`/api/query-ip?ip=${encodeURIComponent(ip)}`)
+  fetch(`/api/query-ip?ip=${encodeURIComponent(ip)}&api=${api}`)
     .then(response => response.json())
     .then(data => {
       if (data.code === 0) {
         renderIpInfo(data.data);
       } else {
-        content.innerHTML = `<p style="color:red">${data.msg}</p>`;
+        content.innerHTML = `
+          <div class="text-center">
+            <p style="color:red">${data.msg}</p>
+            ${api === 'ip9' ? `
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">IP9查询失败，尝试uapis？</p>
+              <button onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm">使用uapis查询</button>
+            ` : `
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">所有通道均查询失败</p>
+            `}
+          </div>
+        `;
       }
     })
     .catch(error => {
       console.error('查询IP失败:', error);
-      content.innerHTML = '<p style="color:red">查询失败</p>';
+      content.innerHTML = `
+        <div class="text-center">
+          <p style="color:red">查询失败，请重试</p>
+          ${api === 'ip9' ? `
+            <button onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm">使用uapis查询</button>
+          ` : ''}
+        </div>
+      `;
     });
 }
 
@@ -407,24 +528,26 @@ function queryIp(ip) {
  * 渲染IP信息
  */
 function renderIpInfo(ipInfo) {
-  const content = document.getElementById('ipModalContent');
+  const content = document.getElementById('ipInfoContent');
   if (!content) return;
   
+  const sourceLabel = ipInfo.source === 'uapis' ? 'uapis' : 'IP9';
+  const sourceClass = ipInfo.source === 'uapis' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300';
+  
   const infoHtml = `
+    <div class="mb-3 flex items-center justify-between">
+      <span class="text-xs px-2 py-1 rounded ${sourceClass}">来源: ${sourceLabel}</span>
+      <button onclick="AppUtils.executeIpQuery('${ipInfo.ip}', '${ipInfo.source === 'uapis' ? 'ip9' : 'uapis'}')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">切换通道</button>
+    </div>
     <div class="ip-info-grid">
       <div class="info-item"><span class="label">IP地址:</span><span class="value">${ipInfo.ip || '-'}</span></div>
       <div class="info-item"><span class="label">国家/地区:</span><span class="value">${ipInfo.country || '-'}</span></div>
-      <div class="info-item"><span class="label">省份:</span><span class="value">${ipInfo.prov || '-'}</span></div>
+      <div class="info-item"><span class="label">省份:</span><span class="value">${ipInfo.province || ipInfo.prov || '-'}</span></div>
       <div class="info-item"><span class="label">城市:</span><span class="value">${ipInfo.city || '-'}</span></div>
-      <div class="info-item"><span class="label">区县:</span><span class="value">${ipInfo.area || '-'}</span></div>
       <div class="info-item"><span class="label">运营商:</span><span class="value">${ipInfo.isp || '-'}</span></div>
-      <div class="info-item"><span class="label">城市简码:</span><span class="value">${ipInfo.city_short_code || '-'}</span></div>
-      <div class="info-item"><span class="label">邮编:</span><span class="value">${ipInfo.post_code || '-'}</span></div>
-      <div class="info-item"><span class="label">区号:</span><span class="value">${ipInfo.area_code || '-'}</span></div>
-      <div class="info-item"><span class="label">经度:</span><span class="value">${ipInfo.lng || '-'}</span></div>
-      <div class="info-item"><span class="label">纬度:</span><span class="value">${ipInfo.lat || '-'}</span></div>
-      <div class="info-item"><span class="label">大区:</span><span class="value">${ipInfo.big_area || '-'}</span></div>
-      ${ipInfo.ip_type ? `<div class="info-item"><span class="label">IP类型:</span><span class="value">${ipInfo.ip_type}</span></div>` : ''}
+      ${ipInfo.lng ? `<div class="info-item"><span class="label">经度:</span><span class="value">${ipInfo.lng}</span></div>` : ''}
+      ${ipInfo.lat ? `<div class="info-item"><span class="label">纬度:</span><span class="value">${ipInfo.lat}</span></div>` : ''}
+      ${ipInfo.info ? `<div class="info-item col-span-2"><span class="label">完整信息:</span><span class="value">${ipInfo.info}</span></div>` : ''}
     </div>
   `;
   
@@ -449,6 +572,7 @@ window.AppUtils = {
   
   // 导航
   renderNavigation,
+  renderNavigationBar,
   
   // Footer
   renderFooter,
@@ -479,6 +603,7 @@ window.AppUtils = {
   
   // IP查询
   queryIp,
+  executeIpQuery,
   renderIpInfo,
   closeIpModal
 };
