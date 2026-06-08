@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>图表分析 - 网页访问统计</title>
-  
-  <!-- 防止深色模式闪烁 -->
+  <title>图表分析 - WebsiteStatistics</title>
   <script>
     (function() {
       const savedTheme = localStorage.getItem('theme');
@@ -15,105 +13,45 @@
       }
     })();
   </script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-  </style>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
-  <!-- 顶部导航栏 -->
-  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-8">
-          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
-          <div class="hidden md:flex items-center gap-1">
-            <a href="/overview" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">数据概览</a>
-            <a href="/charts" class="nav-item nav-active px-4 py-2 rounded-lg text-sm font-medium transition-colors">图表分析</a>
-            <a href="/records" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
-            <a href="/logs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
-            <a href="/api-docs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
-            <a href="/repo" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">仓库信息</a>
-            <a href="/version" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">版本管理</a>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <button onclick="AppUtils.toggleTheme(); if(chartInstance) chartInstance.resize();" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
-          </button>
-          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">退出</a>
-        </div>
-      </div>
-    </div>
-    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
-      <a href="/overview" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">API文档</a>
-    </div>
-  </nav>
-  
-  <!-- 主内容区 -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-2xl font-bold mb-6">图表分析</h1>
     
-    <!-- 图表标签 -->
-    <div class="flex gap-2 mb-6">
-      <button onclick="switchChart('pie')" id="btnPie" class="chart-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">IP来源分布</button>
-      <button onclick="switchChart('bar')" id="btnBar" class="chart-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-neutral-700">访问时段分布</button>
-      <button onclick="switchChart('line')" id="btnLine" class="chart-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-neutral-700">访问趋势</button>
-    </div>
-    
-    <!-- 图表容器 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
-      <div id="chart" style="width: 100%; height: 500px;"></div>
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
+      <div class="flex flex-wrap gap-2 mb-6">
+        <button onclick="switchChart('pie')" class="chart-tab-active px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">饼图 - IP来源</button>
+        <button onclick="switchChart('bar')" class="chart-tab px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">柱状图 - 访问时间分布</button>
+        <button onclick="switchChart('line')" class="chart-tab px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">折线图 - 访问趋势</button>
+      </div>
+      <div id="chartContainer" class="h-80"></div>
     </div>
   </main>
   
   <script src="common.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <script>
-    let chartInstance = null;
-    let currentChartType = 'pie';
+    let currentChart = null;
+    let chartType = 'pie';
     
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
-      AppUtils.renderNavigation();
+      AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       loadStats();
-      
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const mobileMenu = document.getElementById('mobileMenu');
-      if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
     });
     
     async function loadStats() {
       try {
         const response = await fetch('/api/stats');
         const data = await response.json();
-        if (data.code === 0) {
-          renderChart(data.data);
+        
+        if (data.code === 0 && data.data) {
+          renderChart(chartType, data.data);
         }
       } catch (error) {
         console.error('获取统计数据失败:', error);
@@ -121,62 +59,122 @@
     }
     
     function switchChart(type) {
-      currentChartType = type;
-      document.querySelectorAll('.chart-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-200', 'dark:bg-neutral-800', 'text-gray-700', 'dark:text-gray-300');
+      chartType = type;
+      
+      document.querySelectorAll('.chart-tab, .chart-tab-active').forEach(btn => {
+        btn.classList.remove('chart-tab-active', 'bg-blue-600', 'text-white');
+        btn.classList.add('chart-tab', 'bg-gray-100', 'dark:bg-neutral-800', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-neutral-700');
       });
-      document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1)).classList.remove('bg-gray-200', 'dark:bg-neutral-800', 'text-gray-700', 'dark:text-gray-300');
-      document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('bg-blue-600', 'text-white');
+      
+      event.target.classList.remove('chart-tab', 'bg-gray-100', 'dark:bg-neutral-800', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-neutral-700');
+      event.target.classList.add('chart-tab-active', 'bg-blue-600', 'text-white');
+      
       loadStats();
     }
     
-    function renderChart(data) {
-      if (chartInstance) {
-        chartInstance.dispose();
+    function renderChart(type, data) {
+      const container = document.getElementById('chartContainer');
+      if (currentChart) {
+        currentChart.dispose();
       }
+      currentChart = echarts.init(container);
       
-      chartInstance = echarts.init(document.getElementById('chart'));
       const isDark = document.documentElement.classList.contains('dark');
-      const textColor = isDark ? '#e5e7eb' : '#374151';
-      const bgColor = isDark ? '#1f2937' : '#ffffff';
+      const textColor = isDark ? '#9ca3af' : '#6b7280';
+      const lineColor = isDark ? '#4b5563' : '#e5e7eb';
+      const splitLineColor = isDark ? '#374151' : '#f3f4f6';
       
-      let option = {};
+      let option;
       
-      if (currentChartType === 'pie') {
-        option = {
-          backgroundColor: bgColor,
-          title: { text: 'IP来源分布', left: 'center', textStyle: { color: textColor } },
-          tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-          legend: { bottom: 10, textStyle: { color: textColor } },
-          series: [{
-            type: 'pie',
-            radius: '60%',
-            data: data.ipDistribution || [],
-            emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
-          }]
-        };
-      } else if (currentChartType === 'bar') {
-        option = {
-          backgroundColor: bgColor,
-          title: { text: '访问时段分布', left: 'center', textStyle: { color: textColor } },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: data.hourlyDistribution?.map(d => d.hour + '时') || [], axisLabel: { color: textColor } },
-          yAxis: { type: 'value', axisLabel: { color: textColor } },
-          series: [{ type: 'bar', data: data.hourlyDistribution?.map(d => d.count) || [], itemStyle: { color: '#3b82f6' } }]
-        };
-      } else if (currentChartType === 'line') {
-        option = {
-          backgroundColor: bgColor,
-          title: { text: '访问趋势', left: 'center', textStyle: { color: textColor } },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: data.dailyTrend?.map(d => d.date) || [], axisLabel: { color: textColor } },
-          yAxis: { type: 'value', axisLabel: { color: textColor } },
-          series: [{ type: 'line', data: data.dailyTrend?.map(d => d.count) || [], smooth: true, areaStyle: {}, itemStyle: { color: '#3b82f6' } }]
-        };
+      switch(type) {
+        case 'pie':
+          const ipData = data.ipDistribution || [];
+          option = {
+            backgroundColor: 'transparent',
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: { 
+              bottom: 10, 
+              textStyle: { color: textColor },
+              data: ipData.map(item => item.name)
+            },
+            series: [{
+              type: 'pie',
+              radius: ['40%', '70%'],
+              center: ['50%', '40%'],
+              avoidLabelOverlap: false,
+              itemStyle: { borderRadius: 10, borderColor: isDark ? '#1f2937' : '#fff', borderWidth: 2 },
+              label: { show: true, color: textColor },
+              emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+              labelLine: { show: true },
+              data: ipData.map((item, idx) => ({
+                value: item.value,
+                name: item.name,
+                itemStyle: { color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'][idx % 8] }
+              }))
+            }]
+          };
+          break;
+          
+        case 'bar':
+          const hourlyData = data.hourDistribution || [];
+          option = {
+            backgroundColor: 'transparent',
+            grid: { top: 20, right: 20, bottom: 40, left: 60 },
+            xAxis: {
+              type: 'category',
+              data: hourlyData.map(item => item.hour),
+              axisLine: { lineStyle: { color: lineColor } },
+              axisLabel: { color: textColor, rotate: 45 }
+            },
+            yAxis: {
+              type: 'value',
+              axisLine: { lineStyle: { color: lineColor } },
+              axisLabel: { color: textColor },
+              splitLine: { lineStyle: { color: splitLineColor } }
+            },
+            series: [{
+              type: 'bar',
+              data: hourlyData.map(item => item.count),
+              itemStyle: { borderRadius: [6, 6, 0, 0], color: '#3b82f6' }
+            }]
+          };
+          break;
+          
+        case 'line':
+          const trendData = data.dateTrend || [];
+          option = {
+            backgroundColor: 'transparent',
+            grid: { top: 20, right: 20, bottom: 40, left: 60 },
+            xAxis: {
+              type: 'category',
+              data: trendData.map(item => item.date),
+              axisLine: { lineStyle: { color: lineColor } },
+              axisLabel: { color: textColor, rotate: 45 }
+            },
+            yAxis: {
+              type: 'value',
+              axisLine: { lineStyle: { color: lineColor } },
+              axisLabel: { color: textColor },
+              splitLine: { lineStyle: { color: splitLineColor } }
+            },
+            series: [{
+              type: 'line',
+              data: trendData.map(item => item.count),
+              smooth: true,
+              lineStyle: { color: '#3b82f6', width: 3 },
+              areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                  { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+                ])
+              }
+            }]
+          };
+          break;
       }
       
-      chartInstance.setOption(option);
+      currentChart.setOption(option);
+      window.addEventListener('resize', () => currentChart.resize());
     }
   </script>
 </body>

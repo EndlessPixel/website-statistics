@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数据概览 - 网页访问统计</title>
-  
-  <!-- 防止深色模式闪烁 -->
+  <title>数据概览 - WebsiteStatistics</title>
   <script>
     (function() {
       const savedTheme = localStorage.getItem('theme');
@@ -15,162 +13,79 @@
       }
     })();
   </script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-  </style>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
-  <!-- 顶部导航栏 -->
-  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-8">
-          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
-          <div class="hidden md:flex items-center gap-1">
-            <a href="/overview" class="nav-item nav-active px-4 py-2 rounded-lg text-sm font-medium transition-colors">数据概览</a>
-            <a href="/charts" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
-            <a href="/records" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
-            <a href="/logs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
-            <a href="/api-docs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
-            <a href="/repo" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">仓库信息</a>
-            <a href="/version" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">版本管理</a>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <!-- 移动端菜单按钮 -->
-          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <!-- 主题切换 -->
-          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
-          </button>
-          <!-- 退出登录 -->
-          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">退出</a>
-        </div>
-      </div>
-    </div>
-    <!-- 移动端菜单 -->
-    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
-      <a href="/overview" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">API文档</a>
-    </div>
-  </nav>
-  
-  <!-- 主内容区 -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-2xl font-bold mb-6">数据概览</h1>
     
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">📊</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
           <div>
-            <div class="text-2xl font-bold" id="totalRecords">-</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">总访问次数</div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">总访问量</p>
+            <p id="totalVisits" class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">-</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">📊</span>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">🌐</span>
+      
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
           <div>
-            <div class="text-2xl font-bold" id="uniqueIps">-</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">独立IP数</div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">独立IP数</p>
+            <p id="uniqueIps" class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">-</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">🌐</span>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">🔗</span>
+      
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
           <div>
-            <div class="text-2xl font-bold" id="uniqueUrls">-</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">访问域名数</div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">今日访问</p>
+            <p id="todayVisits" class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">-</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">📈</span>
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-neutral-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-neutral-800">
-        <div class="flex items-center gap-4">
-          <span class="text-3xl">📅</span>
+      
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
           <div>
-            <div class="text-2xl font-bold" id="activeDays">-</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">活跃天数</div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">热门页面</p>
+            <p id="topPage" class="text-lg font-bold mt-2 text-gray-900 dark:text-white truncate max-w-[150px]">-</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">🔥</span>
           </div>
         </div>
       </div>
     </div>
     
-    <!-- 今日统计 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-neutral-800 mb-6">
-      <h3 class="text-lg font-semibold mb-4">今日访问统计</h3>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-gray-600 dark:text-gray-400">今日访问次数:</span>
-          <span class="font-semibold text-blue-600 dark:text-blue-400" id="todayCount">-</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-gray-600 dark:text-gray-400">今日独立IP:</span>
-          <span class="font-semibold text-blue-600 dark:text-blue-400" id="todayIps">-</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 自动刷新 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-neutral-800 flex flex-wrap items-center gap-4">
-      <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-        <input type="checkbox" id="autoRefresh" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
-        <span>自动刷新</span>
-      </label>
-      <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-        <span>间隔:</span>
-        <select id="refreshInterval" class="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white">
-          <option value="30">30秒</option>
-          <option value="60" selected>1分钟</option>
-          <option value="300">5分钟</option>
-          <option value="600">10分钟</option>
-        </select>
-      </div>
-      <div class="text-sm text-gray-500 dark:text-gray-400">
-        最后更新: <span id="lastUpdate">-</span>
-      </div>
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
+      <h2 class="text-lg font-semibold mb-4">访问趋势</h2>
+      <div id="trendChart" class="h-64"></div>
     </div>
   </main>
   
   <script src="common.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
-      AppUtils.renderNavigation();
+      AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       loadOverview();
-      AppUtils.setupAutoRefresh(loadOverview);
-      
-      // 移动端菜单
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const mobileMenu = document.getElementById('mobileMenu');
-      if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
     });
     
     async function loadOverview() {
@@ -178,18 +93,68 @@
         const response = await fetch('/api/overview');
         const data = await response.json();
         
-        if (data.code === 0) {
-          document.getElementById('totalRecords').textContent = data.data.totalRecords || 0;
+        if (data.code === 0 && data.data) {
+          document.getElementById('totalVisits').textContent = data.data.totalRecords || 0;
           document.getElementById('uniqueIps').textContent = data.data.uniqueIps || 0;
-          document.getElementById('uniqueUrls').textContent = data.data.uniqueUrls || 0;
-          document.getElementById('activeDays').textContent = data.data.activeDays || 0;
-          document.getElementById('todayCount').textContent = data.data.todayCount || 0;
-          document.getElementById('todayIps').textContent = data.data.todayIps || 0;
-          document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+          document.getElementById('todayVisits').textContent = data.data.todayCount || 0;
+          document.getElementById('topPage').textContent = '-';
         }
       } catch (error) {
-        console.error('获取数据失败:', error);
+        console.error('获取统计数据失败:', error);
       }
+      await loadTrendChart();
+    }
+    
+    async function loadTrendChart() {
+      try {
+        const response = await fetch('/api/stats');
+        const data = await response.json();
+        
+        if (data.code === 0 && data.data) {
+          renderTrendChart(data.data.dateTrend || []);
+        }
+      } catch (error) {
+        console.error('获取趋势数据失败:', error);
+      }
+    }
+    
+    function renderTrendChart(trendData) {
+      const chart = echarts.init(document.getElementById('trendChart'));
+      const isDark = document.documentElement.classList.contains('dark');
+      
+      const option = {
+        backgroundColor: 'transparent',
+        grid: { top: 20, right: 20, bottom: 30, left: 50 },
+        xAxis: {
+          type: 'category',
+          data: trendData.map(item => item.date),
+          axisLine: { lineStyle: { color: isDark ? '#4b5563' : '#e5e7eb' } },
+          axisLabel: { color: isDark ? '#9ca3af' : '#6b7280' }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { lineStyle: { color: isDark ? '#4b5563' : '#e5e7eb' } },
+          axisLabel: { color: isDark ? '#9ca3af' : '#6b7280' },
+          splitLine: { lineStyle: { color: isDark ? '#374151' : '#f3f4f6' } }
+        },
+        series: [{
+          type: 'line',
+          data: trendData.map(item => item.count),
+          smooth: true,
+          lineStyle: { color: '#3b82f6', width: 3 },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+              { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+            ])
+          },
+          itemStyle: { color: '#3b82f6' }
+        }]
+      };
+      
+      chart.setOption(option);
+      
+      window.addEventListener('resize', () => chart.resize());
     }
   </script>
 </body>

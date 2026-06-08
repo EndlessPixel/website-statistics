@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>操作日志 - 网页访问统计</title>
-  
-  <!-- 防止深色模式闪烁 -->
+  <title>操作日志 - WebsiteStatistics</title>
   <script>
     (function() {
       const savedTheme = localStorage.getItem('theme');
@@ -15,69 +13,16 @@
       }
     })();
   </script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-  </style>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
-  <!-- 顶部导航栏 -->
-  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-8">
-          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
-          <div class="hidden md:flex items-center gap-1">
-            <a href="/overview" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">数据概览</a>
-            <a href="/charts" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
-            <a href="/records" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
-            <a href="/logs" class="nav-item nav-active px-4 py-2 rounded-lg text-sm font-medium transition-colors">操作日志</a>
-            <a href="/api-docs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
-            <a href="/repo" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">仓库信息</a>
-            <a href="/version" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">版本管理</a>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
-          </button>
-          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">退出</a>
-        </div>
-      </div>
-    </div>
-    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
-      <a href="/overview" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">API文档</a>
-      <a href="/repo" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">仓库信息</a>
-      <a href="/version" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">版本管理</a>
-    </div>
-  </nav>
-  
-  <!-- 主内容区 -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-2xl font-bold mb-6">操作日志</h1>
     
-    <!-- 工具栏 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-neutral-800 mb-4 flex flex-wrap items-center gap-4">
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-4 mb-4 flex flex-wrap items-center gap-4">
       <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <input type="checkbox" id="autoRefresh" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600">
         <span>自动刷新</span>
@@ -92,16 +37,15 @@
       </div>
     </div>
     
-    <!-- 日志表格 -->
     <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 dark:bg-neutral-800">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">时间</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作类型</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">会话ID</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">IP地址</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">时间</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">操作类型</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">会话ID</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">IP地址</th>
             </tr>
           </thead>
           <tbody id="logsContainer" class="divide-y divide-gray-200 dark:divide-neutral-800">
@@ -111,14 +55,13 @@
       </div>
     </div>
     
-    <!-- 分页 -->
-    <div id="pagination" class="mt-4 flex flex-wrap items-center justify-between gap-4 hidden">
+    <div id="pagination" class="mt-4 flex flex-wrap items-center justify-between gap-4">
       <div class="text-sm text-gray-500 dark:text-gray-400">
         共 <span id="totalRecords">0</span> 条记录，当前第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="AppUtils.prevPage()" id="prevBtn" class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">上一页</button>
-        <button onclick="AppUtils.nextPage()" id="nextBtn" class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">下一页</button>
+        <button onclick="AppUtils.prevPage(loadLogs)" id="prevBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50">上一页</button>
+        <button onclick="AppUtils.nextPage(loadLogs)" id="nextBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50">下一页</button>
       </div>
     </div>
   </main>
@@ -127,27 +70,19 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
-      AppUtils.renderNavigation();
+      AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       AppUtils.resetPaginationState();
+      const state = AppUtils.getPaginationState();
+      state.currentPageSize = 20;
       loadLogs();
       AppUtils.setupAutoRefresh(loadLogs);
-      
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const mobileMenu = document.getElementById('mobileMenu');
-      if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
     });
     
     async function loadLogs() {
       try {
-        const page = parseInt(sessionStorage.getItem('currentPage') || '1');
-        const pageSize = 20;
-        
-        const response = await fetch(`/api/logs?page=${page}&pageSize=${pageSize}`);
+        const state = AppUtils.getPaginationState();
+        const response = await fetch(`/api/logs?page=${state.currentPage}&pageSize=${state.currentPageSize}`);
         const data = await response.json();
         
         if (data.code === 0) {
@@ -194,21 +129,15 @@
     }
     
     function updatePagination(pagination) {
-      if (!pagination) return;
-      
-      // 更新分页状态
-      paginationState.currentPage = pagination.page;
-      paginationState.totalPages = pagination.totalPages;
-      paginationState.currentPageSize = pagination.pageSize;
-      
-      document.getElementById('totalRecords').textContent = pagination.total;
+      AppUtils.updatePagination(
+        pagination,
+        document.getElementById('totalRecords'),
+        null,
+        document.getElementById('prevBtn'),
+        document.getElementById('nextBtn')
+      );
       document.getElementById('currentPage').textContent = pagination.page;
       document.getElementById('totalPages').textContent = pagination.totalPages;
-      
-      document.getElementById('prevBtn').disabled = pagination.page <= 1;
-      document.getElementById('nextBtn').disabled = pagination.page >= pagination.totalPages;
-      
-      document.getElementById('pagination').classList.remove('hidden');
     }
   </script>
 </body>

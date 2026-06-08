@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API文档 - 网页访问统计</title>
-  
-  <!-- 防止深色模式闪烁 -->
+  <title>API文档 - WebsiteStatistics</title>
   <script>
     (function() {
       const savedTheme = localStorage.getItem('theme');
@@ -15,200 +13,220 @@
       }
     })();
   </script>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-  </style>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
-  <!-- 顶部导航栏 -->
-  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-8">
-          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
-          <div class="hidden md:flex items-center gap-1">
-            <a href="/overview" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">数据概览</a>
-            <a href="/charts" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
-            <a href="/records" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
-            <a href="/logs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
-            <a href="/api-docs" class="nav-item nav-active px-4 py-2 rounded-lg text-sm font-medium transition-colors">API文档</a>
-            <a href="/repo" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">仓库信息</a>
-            <a href="/version" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">版本管理</a>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <svg id="themeIcon" class="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
-          </button>
-          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">退出</a>
-        </div>
-      </div>
-    </div>
-    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 py-3 space-y-1">
-      <a href="/overview" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">数据概览</a>
-      <a href="/charts" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">图表分析</a>
-      <a href="/records" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">访问记录</a>
-      <a href="/logs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400">操作日志</a>
-      <a href="/api-docs" class="nav-item block px-4 py-2 rounded-lg text-sm font-medium">API文档</a>
-    </div>
-  </nav>
-  
-  <!-- 主内容区 -->
   <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold mb-2">API文档</h1>
-    <p class="text-gray-500 dark:text-gray-400 mb-6">以下是网页访问统计系统提供的所有API接口文档。</p>
+    <h1 class="text-2xl font-bold mb-6">API文档</h1>
     
-    <!-- POST 统计接口 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded">POST</span>
-        <code class="text-sm font-mono">/api/statistics</code>
-      </div>
-      <p class="text-gray-600 dark:text-gray-400 mb-4">上报访问数据，会自动获取访问者IP</p>
-      
-      <h4 class="font-semibold mb-2">请求参数 (JSON)</h4>
-      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 mb-4 overflow-x-auto">
-        <pre class="text-sm text-gray-700 dark:text-gray-300"><code>{
-  "url": "https://example.com",      // 访问的完整URL
-  "path": "/page1",                  // 请求路径
-  "client_time": 1701234567890,      // 客户端时间戳（可选）
-  "server_time": 1701234567000       // 服务器时间戳（可选）
-}</code></pre>
-      </div>
-      
-      <h4 class="font-semibold mb-2">请求示例</h4>
-      <div class="mb-4">
-        <div class="flex gap-2 mb-3">
-          <button onclick="showExample('fetch', this)" class="example-tab active px-3 py-1 bg-blue-600 text-white text-xs rounded-lg">Fetch</button>
-          <button onclick="showExample('axios', this)" class="example-tab px-3 py-1 bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg">Axios</button>
-          <button onclick="showExample('jquery', this)" class="example-tab px-3 py-1 bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg">jQuery</button>
-          <button onclick="showExample('xhr', this)" class="example-tab px-3 py-1 bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg">XMLHttpRequest</button>
+    <div class="space-y-6">
+      <!-- POST /api/statistics -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">POST</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/statistics</span>
         </div>
-        <div id="exampleCode" class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-          <pre class="text-sm text-green-400"><code>fetch('/api/statistics', {
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">上报访问统计数据</p>
+          
+          <h3 class="font-semibold mb-2">请求参数</h3>
+          <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 p-3 rounded-lg text-sm mb-4 overflow-x-auto">{
+  "ip": "192.168.1.1",        // 用户IP地址
+  "url": "https://example.com", // 访问的URL
+  "path": "/page",             // 路径
+  "client_time": 1699999999,   // 用户端时间戳(秒)
+  "server_time": 1699999999    // 服务器时间戳(秒)
+}</pre>
+          
+          <h3 class="font-semibold mb-2">成功响应</h3>
+          <pre class="bg-gray-900 dark:bg-gray-800 text-green-400 p-3 rounded-lg text-sm mb-4">{
+  "code": 0,
+  "msg": "success"
+}</pre>
+          
+          <h3 class="font-semibold mb-2">失败响应</h3>
+          <pre class="bg-gray-900 dark:bg-gray-800 text-red-400 p-3 rounded-lg text-sm mb-4">{
+  "code": -1,
+  "msg": "参数错误"
+}</pre>
+        </div>
+      </div>
+      
+      <!-- GET /api/records -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">GET</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/records?page=1&pageSize=25</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">获取访问记录列表</p>
+          
+          <h3 class="font-semibold mb-2">请求参数</h3>
+          <ul class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <li><strong>page</strong> - 页码，默认1</li>
+            <li><strong>pageSize</strong> - 每页数量，默认25，范围1-100</li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- GET /api/stats -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">GET</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/stats</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">获取统计数据（用于图表）</p>
+        </div>
+      </div>
+      
+      <!-- GET /api/logs -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">GET</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/logs?page=1&pageSize=25</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">获取操作日志</p>
+        </div>
+      </div>
+      
+      <!-- POST /api/statistics/batch-delete -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-sm font-medium">POST</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/statistics/batch-delete</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">批量删除访问记录</p>
+          
+          <h3 class="font-semibold mb-2">请求参数</h3>
+          <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 p-3 rounded-lg text-sm mb-4 overflow-x-auto">{
+  "ids": [1, 2, 3],  // 要删除的记录ID数组
+  "force": false      // 是否强制删除（跳过确认）
+}</pre>
+        </div>
+      </div>
+      
+      <!-- GET /api/query-ip -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">GET</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/query-ip?ip=x.x.x.x</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">查询IP归属地信息（带缓存）</p>
+        </div>
+      </div>
+      
+      <!-- GET /api/repo -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">GET</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/repo</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">获取GitHub仓库信息</p>
+        </div>
+      </div>
+      
+      <!-- GET /api/version -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden">
+        <div class="bg-gray-50 dark:bg-neutral-800 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
+          <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">GET</span>
+          <span class="ml-3 text-gray-900 dark:text-white font-mono">/api/version</span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold mb-2">描述</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">获取Git版本信息</p>
+        </div>
+      </div>
+      
+      <!-- 调用示例 -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-4">
+        <h3 class="font-semibold mb-4">调用示例</h3>
+        
+        <div class="space-y-4">
+          <div>
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">cURL</h4>
+            <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 p-3 rounded-lg text-sm overflow-x-auto">curl -X POST http://localhost:8000/api/statistics \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ip": "192.168.1.1",
+    "url": "https://example.com",
+    "path": "/page",
+    "client_time": '"$(date +%s)"',
+    "server_time": '"$(date +%s)"'
+  }'</pre>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">JavaScript (Fetch)</h4>
+            <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 p-3 rounded-lg text-sm overflow-x-auto">fetch('http://localhost:8000/api/statistics', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
+    ip: '192.168.1.1',
     url: window.location.href,
     path: window.location.pathname,
-    client_time: Date.now()
+    client_time: Math.floor(Date.now() / 1000),
+    server_time: Math.floor(Date.now() / 1000)
   })
-});</code></pre>
-        </div>
-      </div>
-      
-      <h4 class="font-semibold mb-2">响应示例</h4>
-      <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-        <pre class="text-sm text-green-700 dark:text-green-400"><code>{
-  "code": 0,
-  "msg": "success"
-}</code></pre>
-      </div>
-    </div>
-    
-    <!-- GET 概览接口 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded">GET</span>
-        <code class="text-sm font-mono">/api/overview</code>
-      </div>
-      <p class="text-gray-600 dark:text-gray-400 mb-4">获取统计数据概览，需要登录</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">注意: 需要先登录获取 Cookie，Cookie 名称为 <code class="bg-gray-100 dark:bg-neutral-800 px-1 rounded">session_id</code></p>
-      
-      <h4 class="font-semibold mb-2">响应示例</h4>
-      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 overflow-x-auto">
-        <pre class="text-sm text-gray-700 dark:text-gray-300"><code>{
-  "code": 0,
-  "msg": "success",
-  "data": {
-    "totalRecords": 1000,
-    "uniqueIps": 150,
-    "uniqueUrls": 50,
-    "activeDays": 30,
-    "todayCount": 25,
-    "todayIps": 10
-  }
-}</code></pre>
-      </div>
-    </div>
-    
-    <!-- GET 记录接口 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded">GET</span>
-        <code class="text-sm font-mono">/api/records</code>
-      </div>
-      <p class="text-gray-600 dark:text-gray-400 mb-4">获取访问记录列表，需要登录</p>
-      
-      <h4 class="font-semibold mb-2">查询参数</h4>
-      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 mb-4 overflow-x-auto">
-        <pre class="text-sm text-gray-700 dark:text-gray-300"><code>?page=1&pageSize=25</code></pre>
-      </div>
-      
-      <h4 class="font-semibold mb-2">响应示例</h4>
-      <div class="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 overflow-x-auto">
-        <pre class="text-sm text-gray-700 dark:text-gray-300"><code>{
-  "code": 0,
-  "msg": "success",
-  "data": {
-    "records": [
-      {
-        "id": 1,
-        "ip": "192.168.1.1",
-        "url": "https://example.com",
-        "path": "/page",
-        "client_time": "2024-01-01 12:00:00",
-        "server_time": "2024-01-01 12:00:01",
-        "created_at": "2024-01-01 12:00:01"
-      }
-    ]
-  },
-  "pagination": {
-    "page": 1,
-    "pageSize": 25,
-    "total": 100,
-    "totalPages": 4
-  }
-}</code></pre>
-      </div>
-    </div>
-    
-    <!-- 错误码说明 -->
-    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
-      <h3 class="text-lg font-semibold mb-4">错误码说明</h3>
-      <div class="space-y-3">
-        <div class="flex items-start gap-4">
-          <span class="font-mono text-green-600 dark:text-green-400 shrink-0">0</span>
-          <span class="text-gray-600 dark:text-gray-400">成功</span>
-        </div>
-        <div class="flex items-start gap-4">
-          <span class="font-mono text-red-600 dark:text-red-400 shrink-0">1</span>
-          <span class="text-gray-600 dark:text-gray-400">失败/错误</span>
-        </div>
-        <div class="flex items-start gap-4">
-          <span class="font-mono text-yellow-600 dark:text-yellow-400 shrink-0">401</span>
-          <span class="text-gray-600 dark:text-gray-400">未登录或会话过期</span>
-        </div>
-        <div class="flex items-start gap-4">
-          <span class="font-mono text-orange-600 dark:text-orange-400 shrink-0">429</span>
-          <span class="text-gray-600 dark:text-gray-400">请求过于频繁（限制100次/分钟/IP）</span>
+});</pre>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Python (requests)</h4>
+            <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 p-3 rounded-lg text-sm overflow-x-auto">import requests
+import time
+
+data = {
+    'ip': '192.168.1.1',
+    'url': 'https://example.com',
+    'path': '/page',
+    'client_time': int(time.time()),
+    'server_time': int(time.time())
+}
+
+response = requests.post(
+    'http://localhost:8000/api/statistics',
+    json=data
+)
+print(response.json())</pre>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">PHP</h4>
+            <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 p-3 rounded-lg text-sm overflow-x-auto">&lt;?php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'http://localhost:8000/api/statistics');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'ip' => '192.168.1.1',
+    'url' => 'https://example.com',
+    'path' => '/page',
+    'client_time' => time(),
+    'server_time' => time()
+]));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json'
+]);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+curl_close($ch);
+print_r(json_decode($response, true));
+?&gt;</pre>
+          </div>
         </div>
       </div>
     </div>
@@ -218,70 +236,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       AppUtils.initTheme();
-      AppUtils.renderNavigation();
+      AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
-      
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const mobileMenu = document.getElementById('mobileMenu');
-      if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
     });
-    
-    const examples = {
-      fetch: `<pre class="text-sm text-green-400"><code>fetch('/api/statistics', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    url: window.location.href,
-    path: window.location.pathname,
-    client_time: Date.now()
-  })
-})
-.then(res => res.json())
-.then(data => console.log(data));</code></pre>`,
-      axios: `<pre class="text-sm text-green-400"><code>axios.post('/api/statistics', {
-  url: window.location.href,
-  path: window.location.pathname,
-  client_time: Date.now()
-}).then(res => console.log(res.data));</code></pre>`,
-      jquery: `<pre class="text-sm text-green-400"><code>$.ajax({
-  url: '/api/statistics',
-  method: 'POST',
-  contentType: 'application/json',
-  data: JSON.stringify({
-    url: window.location.href,
-    path: window.location.pathname,
-    client_time: Date.now()
-  }),
-  success: function(data) {
-    console.log(data);
-  }
-});</code></pre>`,
-      xhr: `<pre class="text-sm text-green-400"><code>const xhr = new XMLHttpRequest();
-xhr.open('POST', '/api/statistics', true);
-xhr.setRequestHeader('Content-Type', 'application/json');
-xhr.onload = function() {
-  console.log(JSON.parse(xhr.responseText));
-};
-xhr.send(JSON.stringify({
-  url: window.location.href,
-  path: window.location.pathname,
-  client_time: Date.now()
-}));</code></pre>`
-    };
-    
-    function showExample(type, btn) {
-      document.querySelectorAll('.example-tab').forEach(tab => {
-        tab.classList.remove('active', 'bg-blue-600', 'text-white');
-        tab.classList.add('bg-gray-200', 'dark:bg-neutral-700', 'text-gray-700', 'dark:text-gray-300');
-      });
-      btn.classList.remove('bg-gray-200', 'dark:bg-neutral-700', 'text-gray-700', 'dark:text-gray-300');
-      btn.classList.add('active', 'bg-blue-600', 'text-white');
-      document.getElementById('exampleCode').innerHTML = examples[type];
-    }
   </script>
 </body>
 </html>
