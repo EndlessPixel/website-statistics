@@ -590,6 +590,22 @@ app.get('/api-docs', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
 });
 
+app.get('/repo', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.redirect('/login');
+  }
+  
+  res.sendFile(path.join(__dirname, 'public', 'repo.html'));
+});
+
+app.get('/version', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.redirect('/login');
+  }
+  
+  res.sendFile(path.join(__dirname, 'public', 'version.html'));
+});
+
 app.get('/logout', (req, res) => {
   const sessionId = getSessionId(req);
   const clientIp = req.ip || req.connection.remoteAddress;
@@ -737,6 +753,152 @@ app.get('/api/query-ip', async (req, res) => {
     console.error('查询IP信息失败:', err.message);
     return res.status(500).json({ code: -4, msg: '查询失败' });
   }
+});
+
+// ======================== GitHub仓库信息接口 ========================
+app.get('/api/repo', async (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  
+  try {
+    const repoOwner = 'EndlessPixel';
+    const repoName = 'website-statistics';
+    
+    // 获取仓库基本信息
+    const repoUrl = `https://api.github.com/repos/${repoOwner}/${repoName}`;
+    const contributorsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contributors`;
+    
+    const [repoRes, contributorsRes] = await Promise.all([
+      fetch(repoUrl, { headers: { 'User-Agent': 'WebsiteStatistics' } }),
+      fetch(contributorsUrl, { headers: { 'User-Agent': 'WebsiteStatistics' } })
+    ]);
+    
+    if (!repoRes.ok) {
+      return res.json({ code: -2, msg: '无法连接 GitHub' });
+    }
+    
+    const repoData = await repoRes.json();
+    const contributorsData = contributorsRes.ok ? await contributorsRes.json() : [];
+    
+    res.json({
+      code: 0,
+      data: {
+        stars: repoData.stargazers_count || 0,
+        watchers: repoData.subscribers_count || 0,
+        forks: repoData.forks_count || 0,
+        contributors: contributorsData.slice(0, 12).map(c => ({
+          login: c.login,
+          avatar_url: c.avatar_url,
+          contributions: c.contributions
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('获取仓库信息失败:', err.message);
+    return res.json({ code: -2, msg: '无法连接 GitHub' });
+  }
+});
+
+// ======================== Git版本信息接口 ========================
+app.get('/api/version', async (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  
+  const errors = [];
+  
+  // 检查 .git 目录
+  const hasGitDir = fs.existsSync(path.join(__dirname, '.git'));
+  if (!hasGitDir) {
+    errors.push('项目根目录缺少 .git 文件夹');
+  }
+  
+  // 检查 Git 命令
+  let hasGitCmd = false;
+  let localSha = null;
+  let remoteSha = null;
+  let hasRemote = false;
+  
+  try {
+    const { execSync } = require('child_process');
+    
+    // 检查 git 命令
+    execSync('git --version', { encoding: 'utf-8', stdio: 'pipe' });
+    hasGitCmd = true;
+    
+    if (hasGitDir) {
+      // 获取本地最新 commit
+      try {
+        localSha = execSync('git rev-parse HEAD', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      } catch (e) {
+        localSha = null;
+      }
+      
+      // 获取远程仓库
+      try {
+        const remoteUrl = execSync('git remote get-url origin', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        hasRemote = remoteUrl.length > 0;
+      } catch (e) {
+        hasRemote = false;
+      }
+      
+      // 获取远程最新 commit
+      if (hasRemote) {
+        try {
+          execSync('git fetch origin', { encoding: 'utf-8', stdio: 'pipe' });
+          remoteSha = execSync('git rev-parse origin/main', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        } catch (e) {
+          try {
+            remoteSha = execSync('git rev-parse origin/master', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+          } catch (e2) {
+            remoteSha = null;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Git 命令执行失败:', err.message);
+  }
+  
+  if (!hasGitCmd) {
+    errors.push('系统未安装 Git 命令行工具');
+  }
+  if (!hasRemote) {
+    errors.push('Git 远程仓库未配置');
+  }
+  
+  if (errors.length > 0) {
+    return res.json({
+      code: -1,
+      msg: '环境检查未通过',
+      data: {
+        env: { hasGitDir, hasGitCmd, hasRemote },
+        errors
+      }
+    });
+  }
+  
+  // 计算落后多少个提交
+  let ahead = 0;
+  if (localSha && remoteSha && localSha !== remoteSha) {
+    try {
+      const { execSync } = require('child_process');
+      ahead = parseInt(execSync(`git rev-list --count ${remoteSha}..${localSha}`, { encoding: 'utf-8', stdio: 'pipe' }).trim()) || 0;
+    } catch (e) {
+      ahead = 0;
+    }
+  }
+  
+  res.json({
+    code: 0,
+    data: {
+      localSha,
+      remoteSha,
+      ahead,
+      env: { hasGitDir, hasGitCmd, hasRemote }
+    }
+  });
 });
 
 initDatabase().then(() => {
