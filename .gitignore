@@ -22,6 +22,9 @@ lerna-debug.log*
 *.sqlite3
 statistics.db
 
+# API Keys
+keys.json
+
 # Coverage reports
 coverage/
 .nyc_output/
