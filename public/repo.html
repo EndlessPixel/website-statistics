@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仓库信息 - WebsiteStatistics</title>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
+  
+  <nav class="bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-8">
+          <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">WebsiteStatistics</h1>
+          <div class="hidden md:flex items-center gap-1">
+            <a href="/overview" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">数据概览</a>
+            <a href="/charts" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">图表分析</a>
+            <a href="/records" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">访问记录</a>
+            <a href="/logs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">操作日志</a>
+            <a href="/api-docs" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">API文档</a>
+            <a href="/repo" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">仓库信息</a>
+            <a href="/version" class="nav-item px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">版本管理</a>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
+            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"></circle>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            </svg>
+          </button>
+          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700">退出</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold mb-6">仓库信息</h1>
+    
+    <!-- 仓库统计卡片 -->
+    <div id="repoStats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="text-center">
+          <div class="text-4xl mb-2">⭐</div>
+          <div id="starsCount" class="text-3xl font-bold text-gray-900 dark:text-white">-</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Stars</div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="text-center">
+          <div class="text-4xl mb-2">👁️</div>
+          <div id="watchersCount" class="text-3xl font-bold text-gray-900 dark:text-white">-</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Watchers</div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
+        <div class="text-center">
+          <div class="text-4xl mb-2">🍴</div>
+          <div id="forksCount" class="text-3xl font-bold text-gray-900 dark:text-white">-</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Forks</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 错误提示 -->
+    <div id="errorMsg" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-8">
+      <div class="flex items-center gap-3 text-red-600 dark:text-red-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <span class="font-medium">无法连接 GitHub</span>
+      </div>
+      <p class="text-sm text-red-500 dark:text-red-400 mt-2">请检查网络连接，其他功能不受影响。</p>
+    </div>
+    
+    <!-- 贡献者列表 -->
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
+      <h2 class="text-lg font-semibold mb-4">贡献者</h2>
+      <div id="contributorsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div class="text-center text-gray-500 dark:text-gray-400 col-span-full py-8">加载中...</div>
+      </div>
+    </div>
+  </main>
+  
+  <script src="common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      AppUtils.initTheme();
+      AppUtils.renderFooter();
+      loadRepoInfo();
+    });
+    
+    async function loadRepoInfo() {
+      try {
+        const response = await fetch('/api/repo');
+        const data = await response.json();
+        
+        if (data.code === 0 && data.data) {
+          // 更新统计卡片
+          document.getElementById('starsCount').textContent = data.data.stars || 0;
+          document.getElementById('watchersCount').textContent = data.data.watchers || 0;
+          document.getElementById('forksCount').textContent = data.data.forks || 0;
+          
+          // 渲染贡献者
+          renderContributors(data.data.contributors || []);
+        } else if (data.code === -2) {
+          // 无法连接 GitHub
+          document.getElementById('errorMsg').classList.remove('hidden');
+          document.getElementById('starsCount').textContent = '-';
+          document.getElementById('watchersCount').textContent = '-';
+          document.getElementById('forksCount').textContent = '-';
+          document.getElementById('contributorsList').innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 col-span-full py-8">无法加载贡献者</div>';
+        }
+      } catch (error) {
+        console.error('获取仓库信息失败:', error);
+        document.getElementById('errorMsg').classList.remove('hidden');
+        document.getElementById('starsCount').textContent = '-';
+        document.getElementById('watchersCount').textContent = '-';
+        document.getElementById('forksCount').textContent = '-';
+        document.getElementById('contributorsList').innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 col-span-full py-8">加载失败</div>';
+      }
+    }
+    
+    function renderContributors(contributors) {
+      const container = document.getElementById('contributorsList');
+      if (contributors.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 col-span-full py-8">暂无贡献者</div>';
+        return;
+      }
+      
+      container.innerHTML = contributors.map(c => `
+        <div class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
+          <img src="${c.avatar_url}" alt="${c.login}" class="w-12 h-12 rounded-full mb-2">
+          <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-full">${c.login}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">${c.contributions} commits</span>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
