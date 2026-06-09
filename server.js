@@ -1523,26 +1523,44 @@ app.post('/api/restart', (req, res) => {
   // 返回成功响应
   res.json({ code: 0, msg: '服务正在重启...' });
 
-  // 使用 spawn 重启服务，保持 stdio 继承
-  const { spawn } = require('child_process');
-  
-  // 延迟一秒后重启，确保响应能发送出去
+  // 延迟后执行重启，确保响应发送完成
   setTimeout(() => {
-    const args = process.argv.slice(1);
-    const child = spawn(process.execPath, args, {
-      stdio: 'inherit',
-      detached: true,
-      cwd: process.cwd()
-    });
-    
-    // 在 Windows 上需要额外处理
-    if (process.platform === 'win32') {
+    const { spawn, exec } = require('child_process');
+    const isWindows = process.platform === 'win32';
+
+    if (isWindows) {
+      // Windows: 使用 cmd /c start 启动一个完全独立的新窗口
+      // 先等待2秒让端口释放，再启动新服务
+      exec('timeout /t 2 /nobreak && "' + process.execPath + '" ' +
+           process.argv.map(a => `"${a}"`).join(' '), {
+        cwd: process.cwd(),
+        windowsHide: false,
+        detached: true
+      }, (err) => {
+        if (err) {
+          // fallback: 直接用spawn start的方式
+          spawn('cmd', ['/c', 'start', '/B', 'cmd', '/c',
+                 'timeout /t 2 /nobreak & "' + process.execPath + '" ' +
+                 process.argv.map(a => `"${a}"`).join(' ')], {
+            cwd: process.cwd(),
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: false
+          }).unref();
+        }
+        process.exit(0);
+      });
+    } else {
+      // Linux/macOS: 使用detached + unref
+      const child = spawn(process.execPath, process.argv.slice(1), {
+        stdio: 'inherit',
+        detached: true,
+        cwd: process.cwd()
+      });
       child.unref();
+      setTimeout(() => process.exit(0), 1500);
     }
-    
-    // 退出当前进程
-    process.exit(0);
-  }, 500);
+  }, 800);
 });
 
 initDatabase().then(() => {
