@@ -71,6 +71,39 @@
       </div>
     </div>
 
+    <!-- 服务器配置 -->
+    <div class="api-card bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden mb-6">
+      <div class="p-4 border-b border-gray-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white">服务器配置</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">修改服务端口和绑定IP</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">绑定IP</label>
+            <input type="text" id="serverIp" 
+                   class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">使用 0.0.0.0 监听所有接口，127.0.0.1 仅本地访问</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">服务端口</label>
+            <input type="number" id="serverPort" min="1" max="65535"
+                   class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">端口范围: 1-65535</p>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <p class="text-xs text-amber-800 dark:text-amber-300">
+            ⚠️ 服务器配置修改后需要重启服务才能生效
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- API 配置卡片 -->
     <div class="grid gap-6">
       <!-- uapis.cn - 完整价格方案 -->
@@ -367,6 +400,9 @@
       <button onclick="resetSettings()" class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors">
         重置
       </button>
+      <button onclick="restartServer()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm transition-colors shadow-sm">
+        重启服务
+      </button>
       <button onclick="saveSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">
         保存配置
       </button>
@@ -401,6 +437,15 @@
 
     async function loadSettings() {
       try {
+        // 加载服务器配置
+        const serverResponse = await fetch('/api/server-config');
+        const serverData = await serverResponse.json();
+        if (serverData.code === 0 && serverData.data) {
+          document.getElementById('serverIp').value = serverData.data.ip || '0.0.0.0';
+          document.getElementById('serverPort').value = serverData.data.port || 8000;
+        }
+
+        // 加载API密钥配置
         const response = await fetch('/api/keys');
         const data = await response.json();
         
@@ -428,6 +473,21 @@
     }
 
     async function saveSettings() {
+      // 验证端口
+      const portValue = parseInt(document.getElementById('serverPort').value);
+      if (!portValue || portValue < 1 || portValue > 65535) {
+        alert('端口必须在 1-65535 之间');
+        return;
+      }
+
+      // 验证IP格式
+      const ipValue = document.getElementById('serverIp').value.trim();
+      if (!ipValue) {
+        alert('绑定IP不能为空');
+        return;
+      }
+
+      // API密钥配置
       const settings = {
         uapis: {
           apiKey: document.getElementById('uapisKey').value.trim(),
@@ -443,23 +503,70 @@
         }
       };
 
+      // 服务器配置
+      const serverSettings = {
+        port: portValue,
+        ip: ipValue
+      };
+
       try {
+        // 保存服务器配置
+        const serverResponse = await fetch('/api/server-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(serverSettings)
+        });
+        const serverData = await serverResponse.json();
+
+        // 保存API密钥配置
         const response = await fetch('/api/keys', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(settings)
         });
-        
         const data = await response.json();
-        
-        if (data.code === 0) {
-          alert('✓ 配置保存成功，服务将自动应用新密钥');
+
+        // 收集保存结果
+        let messages = [];
+        if (serverData.code === 0) {
+          messages.push('✓ 服务器配置已保存（需要重启服务生效）');
         } else {
-          alert('保存失败: ' + (data.msg || '未知错误'));
+          messages.push('✗ 服务器配置保存失败: ' + (serverData.msg || '未知错误'));
         }
+
+        if (data.code === 0) {
+          messages.push('✓ API密钥配置已保存');
+        } else {
+          messages.push('✗ API密钥配置保存失败: ' + (data.msg || '未知错误'));
+        }
+
+        alert(messages.join('\n'));
       } catch (error) {
         console.error('保存配置失败:', error);
         alert('网络错误，保存失败，请检查后端服务是否正常');
+      }
+    }
+
+    function restartServer() {
+      if (confirm('⚠️ 确定要重启服务吗？\n\n重启期间服务将暂时不可用，所有未保存的操作将会丢失。\n\n建议在低峰期执行此操作。')) {
+        fetch('/api/restart', {
+          method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.code === 0) {
+            alert('✓ 服务正在重启，请稍候...\n\n页面将在几秒后自动刷新。');
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          } else {
+            alert('重启失败: ' + (data.msg || '未知错误'));
+          }
+        })
+        .catch(error => {
+          console.error('重启请求失败:', error);
+          alert('重启请求发送失败，请手动重启服务');
+        });
       }
     }
 

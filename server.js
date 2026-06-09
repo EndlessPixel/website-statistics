@@ -9,7 +9,24 @@ const http = require('http');
 const https = require('https');
 
 const app = express();
-const PORT = 8000;
+
+// 服务器配置文件路径
+const SERVER_CONFIG_FILE = path.join(__dirname, 'server.json');
+
+// 读取服务器配置
+let serverConfig = { port: 8000, ip: '0.0.0.0' };
+try {
+  if (fs.existsSync(SERVER_CONFIG_FILE)) {
+    serverConfig = JSON.parse(fs.readFileSync(SERVER_CONFIG_FILE, 'utf8'));
+  } else {
+    fs.writeFileSync(SERVER_CONFIG_FILE, JSON.stringify(serverConfig, null, 2));
+  }
+} catch (err) {
+  console.error('读取服务器配置失败:', err.message);
+}
+
+const PORT = serverConfig.port;
+const BIND_IP = serverConfig.ip;
 
 // 密钥配置文件路径
 const KEYS_FILE = path.join(__dirname, 'keys.json');
@@ -1451,8 +1468,85 @@ app.post('/api/keys', (req, res) => {
   }
 });
 
+// ======================== 服务器配置接口 ========================
+app.get('/api/server-config', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+  res.json({ code: 0, data: serverConfig });
+});
+
+app.post('/api/server-config', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+
+  const sessionId = req.cookies.sessionId;
+  const clientIp = req.ip || req.connection.remoteAddress;
+  const { port, ip } = req.body;
+
+  // 验证端口
+  if (port !== undefined && (port < 1 || port > 65535)) {
+    return res.json({ code: -1, msg: '端口必须在1-65535之间' });
+  }
+
+  try {
+    const newConfig = {
+      port: port !== undefined ? parseInt(port) : serverConfig.port,
+      ip: ip !== undefined ? ip : serverConfig.ip
+    };
+
+    fs.writeFileSync(SERVER_CONFIG_FILE, JSON.stringify(newConfig, null, 2));
+    serverConfig = newConfig;
+
+    logOperation('server_config_update',
+      `port:${newConfig.port}, ip:${newConfig.ip}`, sessionId, clientIp);
+
+    res.json({ code: 0, msg: '配置已保存，需要重启服务生效', data: newConfig });
+  } catch (err) {
+    res.json({ code: -1, msg: '保存失败: ' + err.message });
+  }
+});
+
+// ======================== 重启服务接口 ========================
+app.post('/api/restart', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.json({ code: -1, msg: '未登录' });
+  }
+
+  const sessionId = req.cookies.sessionId;
+  const clientIp = req.ip || req.connection.remoteAddress;
+
+  // 先记录重启操作日志
+  logOperation('server_restart', null, sessionId, clientIp);
+
+  // 返回成功响应
+  res.json({ code: 0, msg: '服务正在重启...' });
+
+  // 使用 spawn 重启服务，保持 stdio 继承
+  const { spawn } = require('child_process');
+  
+  // 延迟一秒后重启，确保响应能发送出去
+  setTimeout(() => {
+    const args = process.argv.slice(1);
+    const child = spawn(process.execPath, args, {
+      stdio: 'inherit',
+      detached: true,
+      cwd: process.cwd()
+    });
+    
+    // 在 Windows 上需要额外处理
+    if (process.platform === 'win32') {
+      child.unref();
+    }
+    
+    // 退出当前进程
+    process.exit(0);
+  }, 500);
+});
+
 initDatabase().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, BIND_IP, () => {
     console.log(' /$$      /$$ /$$$$$$$$ /$$$$$$$   /$$$$$$  /$$$$$$ /$$$$$$$$ /$$$$$$$$')
     console.log('| $$  /$ | $$| $$_____/| $$__  $$ /$$__  $$|_  $$_/|__  $$__/| $$_____/')
     console.log('| $$ /$$$| $$| $$      | $$  \ $$| $$  \__/  | $$     | $$   | $$      ')
@@ -1474,6 +1568,7 @@ initDatabase().then(() => {
     console.log('========================================');
     console.log('服务启动成功！');
     console.log('访问密钥（用于查看统计页面）:', SECRET_KEY);
+    console.log('绑定地址: ' + BIND_IP + ':' + PORT);
     console.log('服务地址: http://localhost:' + PORT);
     console.log('接口地址: POST http://localhost:' + PORT + '/api/statistics');
     console.log('========================================');
