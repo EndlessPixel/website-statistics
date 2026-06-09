@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const http = require('http');
 const https = require('https');
 
 const app = express();
@@ -29,12 +30,19 @@ function createBackup(reason = 'manual') {
     const backupName = `backup_${timestamp}_${reason}.json`;
     const backupPath = path.join(BACKUP_DIR, backupName);
     
-    db.all('SELECT * FROM statistics ORDER BY id DESC', [], (err, records) => {
-      if (err) {
-        console.error('创建备份失败:', err.message);
-        resolve(false);
-        return;
-      }
+    try {
+      const results = db.exec('SELECT * FROM statistics ORDER BY id DESC');
+      const records = results.length > 0 ? results[0].values.map(row => ({
+        id: row[0],
+        ip: row[1],
+        url: row[2],
+        path: row[3],
+        client_time: row[4],
+        server_time: row[5],
+        statistics_time: row[6],
+        session_id: row[7],
+        extra_info: row[8]
+      })) : [];
       
       const backupData = {
         timestamp,
@@ -54,7 +62,10 @@ function createBackup(reason = 'manual') {
         cleanupOldBackups();
         resolve(true);
       });
-    });
+    } catch (err) {
+      console.error('创建备份失败:', err.message);
+      resolve(false);
+    }
   });
 }
 
@@ -275,7 +286,7 @@ function escapeHtml(str) {
 const ipCache = new Map();
 const CACHE_TTL = 86400000; // 24小时缓存
 
-// 查询IP信息（双通道：ip9为主，uapis为备用）
+// 查询IP信息（三通道：ip9为主，uapis为备用，ip-api为最终兜底）
 async function fetchIpInfo(ip) {
   // 检查缓存
   const cached = ipCache.get(ip);
@@ -290,8 +301,13 @@ async function fetchIpInfo(ip) {
   }
 
   // ip9 失败，尝试 uapis.cn（备用通道）
-  // uapis 支持无 key 调用，无需强制启用
   result = await fetchUapisInfo(ip);
+  if (result) {
+    return result;
+  }
+
+  // uapis 失败，尝试 ip-api.com（最终兜底）
+  result = await fetchIpApiInfo(ip);
   if (result) {
     return result;
   }
@@ -349,15 +365,16 @@ async function fetchUapisInfo(ip) {
       res.on('end', () => {
         try {
           const result = JSON.parse(data);
-          if (result.code === 200 && result.data) {
+          // uapis 返回格式: {"ip": "...", "region": "...", "isp": "...", "llc": "...", "asn": "..."}
+          if (result && result.ip) {
             // 统一数据格式
             const normalized = {
-              ip: result.data.ip,
-              country: result.data.country || result.data.country_name,
-              province: result.data.province || result.data.region,
-              city: result.data.city,
-              isp: result.data.isp || result.data.operator,
-              info: result.data.info || `${result.data.country || ''} ${result.data.province || ''} ${result.data.city || ''} ${result.data.isp || ''}`.trim(),
+              ip: result.ip,
+              country: result.region || '',
+              province: '',
+              city: '',
+              isp: result.isp || '',
+              info: result.region || '',
               source: 'uapis'
             };
             ipCache.set(ip, { data: normalized, timestamp: Date.now() });
@@ -372,6 +389,40 @@ async function fetchUapisInfo(ip) {
     });
     req.on('error', () => resolve(null));
     req.end();
+  });
+}
+
+// ip-api.com 查询（最终兜底通道，无需API Key）
+async function fetchIpApiInfo(ip) {
+  return new Promise((resolve) => {
+    const url = `http://ip-api.com/json/${encodeURIComponent(ip)}`;
+    http.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          // ip-api.com 返回格式: {"query": "...", "status": "success", "country": "...", "regionName": "...", "city": "...", "isp": "..."}
+          if (result.status === 'success') {
+            const normalized = {
+              ip: result.query,
+              country: result.country || '',
+              province: result.regionName || '',
+              city: result.city || '',
+              isp: result.isp || '',
+              info: `${result.country || ''} ${result.regionName || ''} ${result.city || ''}`.trim(),
+              source: 'ip-api'
+            };
+            ipCache.set(ip, { data: normalized, timestamp: Date.now() });
+            resolve(normalized);
+          } else {
+            resolve(null);
+          }
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    }).on('error', () => resolve(null));
   });
 }
 
@@ -1138,7 +1189,7 @@ app.get('/api/query-ip', async (req, res) => {
   }
   
   const ip = req.query.ip;
-  const api = req.query.api; // 可选：ip9 或 uapis
+  const api = req.query.api; // 可选：ip9、uapis 或 ip-api
   
   if (!isValidIp(ip)) {
     return res.json({ code: -2, msg: '无效的IP地址' });
@@ -1150,6 +1201,9 @@ app.get('/api/query-ip', async (req, res) => {
     if (api === 'uapis') {
       // 强制使用 uapis（支持无 key 调用）
       ipInfo = await fetchUapisInfo(ip);
+    } else if (api === 'ip-api') {
+      // 强制使用 ip-api（无需 key）
+      ipInfo = await fetchIpApiInfo(ip);
     } else {
       // 默认使用 ip9
       ipInfo = await fetchIp9Info(ip);
