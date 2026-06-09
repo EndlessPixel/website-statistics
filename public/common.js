@@ -462,20 +462,36 @@ function queryIp(ip) {
   
   // 显示API选择弹窗
   content.innerHTML = `
-    <div class="text-center">
-      <p class="text-gray-700 dark:text-gray-300 mb-4">请选择查询方式</p>
-      <div class="grid grid-cols-2 gap-3">
-        <button onclick="AppUtils.executeIpQuery('${ip}', 'ip9')" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex flex-col items-center">
-          <span class="font-medium">IP9</span>
-          <span class="text-xs opacity-80">主通道</span>
-        </button>
-        <button onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" class="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex flex-col items-center">
-          <span class="font-medium">uapis</span>
-          <span class="text-xs opacity-80">备用通道</span>
-        </button>
-      </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">免费用户默认使用IP9通道，查询失败后可尝试uapis通道</p>
-    </div>
+<div class="text-center py-6 px-4 max-w-xl mx-auto">
+  <p class="text-gray-700 dark:text-gray-300 text-lg font-medium mb-5">请选择查询方式</p>
+  
+  <div class="grid grid-cols-3 gap-4">
+    <button 
+      onclick="AppUtils.executeIpQuery('${ip}', 'ip9')" 
+      class="px-3 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center"
+    >
+      <span class="font-medium">ip9.com.cn</span>
+    </button>
+
+    <button 
+      onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" 
+      class="px-3 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center"
+    >
+      <span class="font-medium">uapis.cn</span>
+    </button>
+
+    <button 
+      onclick="AppUtils.executeIpQuery('${ip}', 'ip-api')" 
+      class="px-3 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center"
+    >
+      <span class="font-medium">ip-api.com</span>
+    </button>
+  </div>
+
+  <p class="text-xs text-gray-500 dark:text-gray-400 mt-5 opacity-80">
+    免费用户默认使用IP9通道，查询失败后自动尝试其他通道
+  </p>
+</div>
   `;
   modal.style.display = 'block';
 }
@@ -485,10 +501,12 @@ function queryIp(ip) {
  */
 function executeIpQuery(ip, api) {
   const content = document.getElementById('ipInfoContent');
+  const apiNames = { 'ip9': 'ip9.com.cn', 'uapis': 'uapis.cn', 'ip-api': 'ip-api.com' };
+  
   content.innerHTML = `
     <div class="text-center py-4">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-      <p class="text-gray-500 dark:text-gray-400 mt-2">正在通过 ${api === 'ip9' ? 'IP9' : 'uapis'} 查询...</p>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">正在通过 ${apiNames[api] || api} 查询...</p>
     </div>
   `;
   
@@ -498,15 +516,14 @@ function executeIpQuery(ip, api) {
       if (data.code === 0) {
         renderIpInfo(data.data);
       } else {
+        // 查询失败，显示返回按钮让用户重新选择
         content.innerHTML = `
           <div class="text-center">
-            <p style="color:red">${data.msg}</p>
-            ${api === 'ip9' ? `
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">IP9查询失败，尝试uapis？</p>
-              <button onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm">使用uapis查询</button>
-            ` : `
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">所有通道均查询失败</p>
-            `}
+            <p class="text-red-500 dark:text-red-400 mb-2">${data.msg || '查询失败'}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">通过 ${apiNames[api] || api} 查询失败，请选择其他通道重试</p>
+            <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors">
+              ← 返回选择通道
+            </button>
           </div>
         `;
       }
@@ -515,10 +532,11 @@ function executeIpQuery(ip, api) {
       console.error('查询IP失败:', error);
       content.innerHTML = `
         <div class="text-center">
-          <p style="color:red">查询失败，请重试</p>
-          ${api === 'ip9' ? `
-            <button onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" class="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm">使用uapis查询</button>
-          ` : ''}
+          <p class="text-red-500 dark:text-red-400 mb-2">网络错误，查询失败</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">请检查网络连接后重试</p>
+          <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors">
+            ← 返回选择通道
+          </button>
         </div>
       `;
     });
@@ -531,13 +549,28 @@ function renderIpInfo(ipInfo) {
   const content = document.getElementById('ipInfoContent');
   if (!content) return;
   
-  const sourceLabel = ipInfo.source === 'uapis' ? 'uapis' : 'IP9';
-  const sourceClass = ipInfo.source === 'uapis' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300';
+  // 来源标签映射
+  const sourceNames = { 'ip9': 'IP9', 'uapis': 'uapis', 'ip-api': 'ip-api' };
+  const sourceColors = {
+    'ip9': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+    'uapis': 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+    'ip-api': 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+  };
+  
+  const source = ipInfo.source || 'ip9';
+  const sourceLabel = sourceNames[source] || source;
+  const sourceClass = sourceColors[source] || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
+  
+  // 保存原始数据用于显示
+  const rawData = encodeURIComponent(JSON.stringify(ipInfo, null, 2));
   
   const infoHtml = `
-    <div class="mb-3 flex items-center justify-between">
+    <div class="mb-4 flex items-center justify-between">
       <span class="text-xs px-2 py-1 rounded ${sourceClass}">来源: ${sourceLabel}</span>
-      <button onclick="AppUtils.executeIpQuery('${ipInfo.ip}', '${ipInfo.source === 'uapis' ? 'ip9' : 'uapis'}')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">切换通道</button>
+      <div class="flex gap-2">
+        <button onclick="AppUtils.showRawData('${rawData}')" class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline">查看原始返回</button>
+        <button onclick="AppUtils.queryIp('${ipInfo.ip}')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">← 返回选择通道</button>
+      </div>
     </div>
     <div class="ip-info-grid">
       <div class="info-item"><span class="label">IP地址:</span><span class="value">${ipInfo.ip || '-'}</span></div>
@@ -552,6 +585,23 @@ function renderIpInfo(ipInfo) {
   `;
   
   content.innerHTML = infoHtml;
+}
+
+/**
+ * 显示原始返回数据
+ */
+function showRawData(rawData) {
+  const content = document.getElementById('ipInfoContent');
+  if (!content) return;
+  
+  const decodedData = decodeURIComponent(rawData);
+  
+  content.innerHTML = `
+    <div class="mb-4">
+      <button onclick="AppUtils.renderIpInfo(JSON.parse(decodeURIComponent('${rawData}')))" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 block">← 返回格式化显示</button>
+      <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 dark:text-gray-200 p-4 rounded-lg text-xs overflow-x-auto max-h-80 overflow-y-auto">${decodedData}</pre>
+    </div>
+  `;
 }
 
 /**
@@ -605,5 +655,6 @@ window.AppUtils = {
   queryIp,
   executeIpQuery,
   renderIpInfo,
+  showRawData,
   closeIpModal
 };
