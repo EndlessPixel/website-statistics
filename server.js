@@ -245,13 +245,23 @@ function loadKeys() {
   return {
     uapis: { apiKey: '', enabled: false },
     ip9: { apiKey: '', enabled: false },
-    github: { accessToken: '', enabled: false }
+    github: { accessToken: '', enabled: false },
+    panelPassword: { enabled: false, hash: '' },
+    ipWhitelist: { enabled: false, list: [] },
+    domainWhitelist: { enabled: false, list: [] }
   };
 }
 
 // 保存密钥配置
 function saveKeys(keys) {
   try {
+    // 确保新字段存在
+    keys.uapis = keys.uapis || { apiKey: '', enabled: false };
+    keys.ip9 = keys.ip9 || { apiKey: '', enabled: false };
+    keys.github = keys.github || { accessToken: '', enabled: false };
+    keys.panelPassword = keys.panelPassword || { enabled: false, hash: '' };
+    keys.ipWhitelist = keys.ipWhitelist || { enabled: false, list: [] };
+    keys.domainWhitelist = keys.domainWhitelist || { enabled: false, list: [] };
     fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2), 'utf8');
     return true;
   } catch (err) {
@@ -265,12 +275,38 @@ if (!fs.existsSync(KEYS_FILE)) {
   saveKeys({
     uapis: { apiKey: '', enabled: false },
     ip9: { apiKey: '', enabled: false },
-    github: { accessToken: '', enabled: false }
+    github: { accessToken: '', enabled: false },
+    panelPassword: { enabled: false, hash: '' },
+    ipWhitelist: { enabled: false, list: [] },
+    domainWhitelist: { enabled: false, list: [] }
   });
 }
 
 // 全局密钥配置
 let apiKeys = loadKeys();
+
+// SHA-512 密码哈希（带随机 salt）
+function hashPassword(password, salt) {
+  if (!salt) {
+    salt = crypto.randomBytes(16).toString('hex');
+  }
+  const hash = crypto.createHmac('sha512', salt).update(String(password)).digest('hex');
+  return { salt, hash };
+}
+
+function verifyPassword(password, storedHash, storedSalt) {
+  if (!storedHash || !storedSalt) return false;
+  const { hash } = hashPassword(password, storedSalt);
+  // 使用 timingSafeEqual 防止时序攻击
+  try {
+    const a = Buffer.from(hash, 'hex');
+    const b = Buffer.from(storedHash, 'hex');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch (e) {
+    return false;
+  }
+}
 
 // 安全头部设置
 app.use((req, res, next) => {
@@ -287,6 +323,37 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' })); // 限制请求体大小
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ======================== IP 白名单检查中间件 ========================
+function checkIpWhitelist(req, res, next) {
+  // 放行公共路径
+  const publicPaths = ['/api/statistics', '/api/login-config', '/login', '/logout'];
+  if (publicPaths.some(p => req.path.startsWith(p)) || req.path === '/') {
+    return next();
+  }
+
+  if (!apiKeys.ipWhitelist || !apiKeys.ipWhitelist.enabled) {
+    return next();
+  }
+
+  const clientIp = req.ip || req.connection.remoteAddress;
+  const whitelist = apiKeys.ipWhitelist.list || [];
+
+  if (!whitelist.includes(clientIp)) {
+    // 不在白名单：清除 session 并跳转
+    const sessionId = getSessionId(req);
+    if (sessionId) sessions.delete(sessionId);
+    res.clearCookie('session_id');
+    if (req.path.startsWith('/api/')) {
+      return res.status(403).json({ code: -3, msg: 'IP 不在白名单内' });
+    }
+    return res.redirect('/login?err=3');
+  }
+  next();
+}
+
+// 注册 IP 白名单中间件
+app.use(checkIpWhitelist);
 
 // XSS防护 - HTML实体转义函数
 function escapeHtml(str) {
@@ -454,16 +521,123 @@ function sanitizeInput(str, maxLength = 500) {
   return str.substring(0, maxLength).replace(/[<>\"\'\\]/g, '');
 }
 
-// 验证IP地址格式
+// 验证 IP 地址格式（分别验证 IPv4 / IPv6，避免宽泛匹配）
 function isValidIp(ip) {
   if (!ip || typeof ip !== 'string') return false;
-  // IPv4 或 IPv6 格式验证
-  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  const ipv6Regex = /^([0-9a-fA-F:]+)$/;
-  return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ip === '::1' || ip.startsWith('::ffff:');
+  return isIPv4(ip) || isIPv6(ip);
 }
 
-// 验证URL格式
+function isIPv4(ip) {
+  if (typeof ip !== 'string') return false;
+  // 1. 兼容 ::ffff:x.x.x.x 形式的 IPv4-mapped IPv6
+  let candidate = ip;
+  if (candidate.toLowerCase().startsWith('::ffff:')) {
+    candidate = candidate.substring(7);
+  }
+  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const match = candidate.match(ipv4Regex);
+  if (!match) return false;
+  for (let i = 1; i <= 4; i++) {
+    const n = parseInt(match[i], 10);
+    if (n < 0 || n > 255) return false;
+    // 拒绝前导零，避免歧义（如 010.0.0.1）
+    if (match[i].length > 1 && match[i][0] === '0') return false;
+  }
+  return true;
+}
+
+function isIPv6(ip) {
+  if (typeof ip !== 'string') return false;
+  // 使用 Node.js 内置 net.isIPv6 若可用；否则退化为正则校验
+  try {
+    const net = require('net');
+    if (net.isIPv6 && net.isIPv6(ip)) return true;
+  } catch (e) { /* ignore */ }
+  // 粗略的 IPv6 校验：仅允许 16 进制、冒号、最多一次 "::"
+  if (!/^[0-9a-fA-F:]+$/.test(ip)) return false;
+  if ((ip.match(/::/g) || []).length > 1) return false;
+  const groups = ip.split('::');
+  const left = groups[0] ? groups[0].split(':') : [];
+  const right = groups[1] !== undefined ? (groups[1] ? groups[1].split(':') : []) : ip.split(':');
+  const total = left.length + right.length;
+  if (groups.length === 1) {
+    // 未使用压缩，必须恰好 8 组
+    return total === 8 && left.every(g => /^[0-9a-fA-F]{1,4}$/.test(g));
+  }
+  // 使用了 "::" 压缩，总组数不超过 8
+  if (total > 7) return false;
+  return [...left, ...right].every(g => /^[0-9a-fA-F]{1,4}$/.test(g));
+}
+
+// 从 URL 中提取域名（不含端口、协议）
+function extractDomain(url) {
+  if (!url || typeof url !== 'string') return '';
+  let raw = url.trim();
+  // 去除前后空白、控制字符
+  if (!raw) return '';
+  // 若缺少协议前缀，临时添加
+  if (!/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(raw)) {
+    raw = 'http://' + raw;
+  }
+  try {
+    const u = new URL(raw);
+    const host = u.hostname || '';
+    // 去除可能的方括号（IPv6 字面量）以及端口
+    return host;
+  } catch (e) {
+    return '';
+  }
+}
+
+// 校验是否为合法域名（含 IPv4/IPv6 字面量也允许）
+function isValidDomain(host) {
+  if (!host || typeof host !== 'string') return false;
+  if (host.length > 253) return false;
+  // 非法字符：ASCII 控制、< > " ' \s 等
+  if (/[\x00-\x1f\x7f<>\"\'\s]/.test(host)) return false;
+  // IPv4 / IPv6 字面量也算合法 host
+  if (isIPv4(host)) return true;
+  // 方括号包裹的 IPv6 字面量
+  if (host.startsWith('[') && host.endsWith(']')) {
+    return isIPv6(host.substring(1, host.length - 1));
+  }
+  // 普通域名：label 以字母数字开头/结尾，中间可含 '-'
+  const labelRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$/;
+  const labels = host.split('.');
+  if (labels.length < 2) return false;
+  for (const label of labels) {
+    if (!label || label.length > 63) return false;
+    if (!labelRegex.test(label)) return false;
+  }
+  // 顶级域不能全是数字（避免 "123.45" 这种被当作域名）
+  const tld = labels[labels.length - 1];
+  if (/^\d+$/.test(tld)) return false;
+  return true;
+}
+
+// 检查域名是否在白名单内（允许精确匹配以及子域名匹配：.example.com 匹配 *.example.com）
+function isDomainAllowed(host) {
+  if (!apiKeys.domainWhitelist || !apiKeys.domainWhitelist.enabled) return true;
+  const list = Array.isArray(apiKeys.domainWhitelist.list) ? apiKeys.domainWhitelist.list : [];
+  if (!host) return false;
+  const normalizedHost = host.toLowerCase();
+  for (const item of list) {
+    if (typeof item !== 'string' || !item) continue;
+    const rule = item.trim().toLowerCase();
+    if (!rule) continue;
+    // 以 "." 开头 -> 允许该域及其所有子域
+    if (rule.startsWith('.')) {
+      if (normalizedHost === rule.substring(1) || normalizedHost.endsWith(rule)) {
+        return true;
+      }
+    } else {
+      if (normalizedHost === rule) return true;
+    }
+  }
+  return false;
+}
+
+// 验证 URL 格式
 function isValidUrl(url) {
   if (!url || typeof url !== 'string') return false;
   // 简单的URL验证，防止注入
@@ -531,11 +705,44 @@ function createTable() {
       path TEXT NOT NULL,
       client_time TEXT NOT NULL,
       server_time TEXT NOT NULL,
-      statistics_time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      statistics_time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reporter_ip TEXT
     )
   `;
   db.run(createStatisticsTable);
-  
+
+  // 兼容旧库：如果已有表但缺少 reporter_ip 列，则迁移到新表
+  try {
+    const colsResult = db.exec("PRAGMA table_info(statistics)");
+    if (colsResult.length > 0) {
+      const colNames = colsResult[0].values.map(row => String(row[1]));
+      if (!colNames.includes('reporter_ip')) {
+        console.log('检测到旧版本 statistics 表，新增 reporter_ip 列...');
+        db.run(`
+          CREATE TABLE statistics_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT NOT NULL,
+            url TEXT NOT NULL,
+            path TEXT NOT NULL,
+            client_time TEXT NOT NULL,
+            server_time TEXT NOT NULL,
+            statistics_time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            reporter_ip TEXT
+          )
+        `);
+        db.run(`
+          INSERT INTO statistics_new (id, ip, url, path, client_time, server_time, statistics_time)
+          SELECT id, ip, url, path, client_time, server_time, statistics_time FROM statistics
+        `);
+        db.run('DROP TABLE statistics');
+        db.run('ALTER TABLE statistics_new RENAME TO statistics');
+        console.log('statistics 表迁移完成');
+      }
+    }
+  } catch (err) {
+    console.error('迁移 statistics 表失败:', err.message);
+  }
+
   const createLogsTable = `
     CREATE TABLE IF NOT EXISTS operation_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -598,53 +805,80 @@ function checkRateLimit(ip) {
 
 app.post('/api/statistics', (req, res) => {
   const { ip, url, path, client_time, server_time } = req.body;
-  
+
   // 参数验证
   if (!ip || !url || !path || !client_time || !server_time) {
-    return res.status(400).json({ 
-      code: -1, 
-      msg: '参数缺失，请提供 ip、url、path、client_time、server_time' 
+    return res.status(400).json({
+      code: -1,
+      msg: '参数缺失，请提供 ip、url、path、client_time、server_time'
     });
   }
-  
-  // 输入清理 - 防止XSS和SQL注入
+
+  // 输入清理 - 防止 XSS 和 SQL 注入
   const sanitizedIp = sanitizeInput(ip, 50);
   const sanitizedUrl = sanitizeInput(url, 500);
   const sanitizedPath = sanitizeInput(path, 1000);
   const sanitizedClientTime = sanitizeInput(client_time, 50);
   const sanitizedServerTime = sanitizeInput(server_time, 50);
-  
-  // 格式验证
+
+  // 1) 严格校验 IP 格式（分别校验 IPv4 / IPv6）
   if (!isValidIp(sanitizedIp)) {
-    return res.status(400).json({ code: -1, msg: 'IP地址格式无效' });
+    return res.status(400).json({ code: -1, msg: 'IP地址格式无效，必须为合法的 IPv4 或 IPv6' });
   }
+
+  // 2) 校验 URL 基本格式 + 提取并校验域名
   if (!isValidUrl(sanitizedUrl)) {
     return res.status(400).json({ code: -1, msg: 'URL格式无效' });
   }
+  const host = extractDomain(sanitizedUrl);
+  if (!host || !isValidDomain(host)) {
+    return res.status(400).json({ code: -1, msg: 'URL 中的域名无效' });
+  }
+
+  // 3) 域名白名单校验（若开启）
+  if (!isDomainAllowed(host)) {
+    console.log(`[reject] 上报域名不在白名单: ip=${sanitizedIp}, host=${host}, reporter=${req.ip}`);
+    return res.status(403).json({
+      code: -4,
+      msg: '域名不在允许的白名单内'
+    });
+  }
+
+  // 上报者 IP（使用 Express 获取的真实 IP；无法伪造由后端记录）
+  const reporterIp =
+    (req.headers['x-forwarded-for'] && String(req.headers['x-forwarded-for']).split(',')[0].trim()) ||
+    req.ip ||
+    req.connection.remoteAddress ||
+    'unknown';
+
+  if (!checkRateLimit(reporterIp)) {
+    return res.status(429).json({
+      code: -2,
+      msg: '请求过于频繁，请稍后再试'
+    });
+  }
+
   if (!isValidPath(sanitizedPath)) {
     return res.status(400).json({ code: -1, msg: '路径格式无效' });
   }
-  
-  const clientIp = req.ip || req.connection.remoteAddress || 
-                   (req.headers['x-forwarded-for'] || '').split(',')[0] || 'unknown';
-  
-  if (!checkRateLimit(clientIp)) {
-    return res.status(429).json({ 
-      code: -2, 
-      msg: '请求过于频繁，请稍后再试' 
-    });
-  }
-  
+
   const statisticsTime = new Date().toISOString();
-  
-  // 使用参数化查询防止SQL注入
+
   const insertSql = `
-    INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time, reporter_ip)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  
+
   try {
-    db.run(insertSql, [sanitizedIp, sanitizedUrl, sanitizedPath, sanitizedClientTime, sanitizedServerTime, statisticsTime]);
+    db.run(insertSql, [
+      sanitizedIp,
+      sanitizedUrl,
+      sanitizedPath,
+      sanitizedClientTime,
+      sanitizedServerTime,
+      statisticsTime,
+      reporterIp
+    ]);
     res.json({ code: 0, msg: 'success' });
   } catch (err) {
     console.error('插入数据失败:', err.message);
@@ -888,23 +1122,53 @@ app.delete('/api/statistics/:id', async (req, res) => {
 
 app.get('/login', (req, res) => {
   const key = req.query.key;
+  const password = req.query.password;
   const clientIp = req.ip || req.connection.remoteAddress;
-  
+
   if (!key) {
     return res.sendFile(path.join(__dirname, 'public', 'login.html'));
   }
-  
-  if (key === SECRET_KEY) {
-    const sessionId = crypto.randomBytes(16).toString('hex');
-    sessions.add(sessionId);
-    logOperation('login', null, sessionId, clientIp);
-    res.cookie('session_id', sessionId, { httpOnly: true, secure: false });
-    res.redirect('/overview');
-  } else {
-    // 记录登录失败日志
+
+  // 先验证密钥
+  if (key !== SECRET_KEY) {
     logOperation('login_failed', null, null, clientIp);
-    res.redirect('/login?err=1');
+    return res.redirect('/login?err=1');
   }
+
+  // 如果开启了面板密码，也需要验证密码
+  const panelPwd = apiKeys.panelPassword;
+  if (panelPwd && panelPwd.enabled) {
+    if (!password || !verifyPassword(password, panelPwd.hash, panelPwd.salt)) {
+      logOperation('login_failed_password', null, null, clientIp);
+      return res.redirect('/login?err=2');
+    }
+  }
+
+  const sessionId = crypto.randomBytes(16).toString('hex');
+  sessions.add(sessionId);
+  logOperation('login', null, sessionId, clientIp);
+  res.cookie('session_id', sessionId, { httpOnly: true, secure: false });
+  res.redirect('/overview');
+});
+
+// 登录配置查询 - 告诉前端是否需要密码
+app.get('/api/login-config', (req, res) => {
+  const panelPwd = apiKeys.panelPassword || { enabled: false };
+  const ipWl = apiKeys.ipWhitelist || { enabled: false };
+  const clientIp = req.ip || req.connection.remoteAddress;
+  let ipBlocked = false;
+  if (ipWl.enabled && Array.isArray(ipWl.list)) {
+    ipBlocked = !ipWl.list.includes(clientIp);
+  }
+  res.json({
+    code: 0,
+    data: {
+      passwordEnabled: !!panelPwd.enabled,
+      ipWhitelistEnabled: !!ipWl.enabled,
+      currentIp: clientIp,
+      ipBlocked
+    }
+  });
 });
 
 // 根路径路由 - 根据登录状态跳转
@@ -1406,6 +1670,10 @@ app.get('/api/keys', (req, res) => {
     return res.json({ code: -1, msg: '未登录' });
   }
 
+  const panelPwd = apiKeys.panelPassword || { enabled: false };
+  const ipWl = apiKeys.ipWhitelist || { enabled: false, list: [] };
+  const domainWl = apiKeys.domainWhitelist || { enabled: false, list: [] };
+
   res.json({
     code: 0,
     data: {
@@ -1420,6 +1688,18 @@ app.get('/api/keys', (req, res) => {
       github: {
         accessToken: apiKeys.github.accessToken ? '******' : '',
         enabled: apiKeys.github.enabled
+      },
+      panelPassword: {
+        enabled: !!panelPwd.enabled,
+        hasHash: !!panelPwd.hash
+      },
+      ipWhitelist: {
+        enabled: !!ipWl.enabled,
+        list: Array.isArray(ipWl.list) ? ipWl.list : []
+      },
+      domainWhitelist: {
+        enabled: !!domainWl.enabled,
+        list: Array.isArray(domainWl.list) ? domainWl.list : []
       }
     }
   });
@@ -1430,7 +1710,9 @@ app.post('/api/keys', (req, res) => {
     return res.json({ code: -1, msg: '未登录' });
   }
 
-  const { uapis, ip9, github } = req.body;
+  const { uapis, ip9, github, ipWhitelist, domainWhitelist } = req.body;
+  const sessionId = getSessionId(req);
+  const clientIp = req.ip || req.connection.remoteAddress;
 
   // 更新密钥配置
   if (uapis !== undefined) {
@@ -1438,7 +1720,10 @@ app.post('/api/keys', (req, res) => {
       apiKeys.uapis.enabled = uapis.enabled;
     }
     if (typeof uapis.apiKey === 'string') {
-      apiKeys.uapis.apiKey = uapis.apiKey.trim();
+      // 只有当用户输入的不是掩码时才更新
+      if (uapis.apiKey.trim() !== '******') {
+        apiKeys.uapis.apiKey = uapis.apiKey.trim();
+      }
     }
   }
 
@@ -1447,7 +1732,9 @@ app.post('/api/keys', (req, res) => {
       apiKeys.ip9.enabled = ip9.enabled;
     }
     if (typeof ip9.apiKey === 'string') {
-      apiKeys.ip9.apiKey = ip9.apiKey.trim();
+      if (ip9.apiKey.trim() !== '******') {
+        apiKeys.ip9.apiKey = ip9.apiKey.trim();
+      }
     }
   }
 
@@ -1456,7 +1743,31 @@ app.post('/api/keys', (req, res) => {
       apiKeys.github.enabled = github.enabled;
     }
     if (typeof github.accessToken === 'string') {
-      apiKeys.github.accessToken = github.accessToken.trim();
+      if (github.accessToken.trim() !== '******') {
+        apiKeys.github.accessToken = github.accessToken.trim();
+      }
+    }
+  }
+
+  if (ipWhitelist !== undefined) {
+    if (typeof ipWhitelist.enabled === 'boolean') {
+      apiKeys.ipWhitelist.enabled = ipWhitelist.enabled;
+    }
+    if (Array.isArray(ipWhitelist.list)) {
+      const cleaned = ipWhitelist.list.map(s => String(s).trim()).filter(s => s.length > 0);
+      apiKeys.ipWhitelist.list = cleaned;
+    }
+  }
+
+  if (domainWhitelist !== undefined) {
+    if (typeof domainWhitelist.enabled === 'boolean') {
+      apiKeys.domainWhitelist.enabled = domainWhitelist.enabled;
+    }
+    if (Array.isArray(domainWhitelist.list)) {
+      const cleaned = domainWhitelist.list
+        .map(s => String(s).trim())
+        .filter(s => s.length > 0 && s.length <= 253);
+      apiKeys.domainWhitelist.list = cleaned;
     }
   }
 
@@ -1466,6 +1777,76 @@ app.post('/api/keys', (req, res) => {
   } else {
     res.json({ code: -1, msg: '保存失败' });
   }
+});
+
+// ======================== 面板密码管理 API ========================
+// 开启/关闭/修改 面板密码时都必须提供访问密钥（SECRET_KEY）
+app.post('/api/panel-password', (req, res) => {
+  if (!checkLogin(req)) {
+    return res.status(401).json({ code: -1, msg: '未登录' });
+  }
+
+  const sessionId = getSessionId(req);
+  const clientIp = req.ip || req.connection.remoteAddress;
+  const { accessKey, action, oldPassword, newPassword } = req.body;
+
+  // 必须验证访问密钥（防止会话被窃取后直接修改安全设置）
+  if (!accessKey || accessKey !== SECRET_KEY) {
+    logOperation('panel_password_verify_failed', null, sessionId, clientIp);
+    return res.status(403).json({ code: -2, msg: '访问密钥错误' });
+  }
+
+  if (action === 'enable') {
+    // 开启面板密码：newPassword 不能为空
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
+      return res.status(400).json({ code: -3, msg: '新密码不能为空，且至少 4 个字符' });
+    }
+    const { salt, hash } = hashPassword(newPassword);
+    apiKeys.panelPassword = { enabled: true, hash, salt };
+    saveKeys(apiKeys);
+    logOperation('panel_password_enabled', null, sessionId, clientIp);
+    return res.json({ code: 0, msg: '面板密码已开启' });
+  }
+
+  if (action === 'disable') {
+    // 关闭面板密码：仅需密钥
+    apiKeys.panelPassword = { enabled: false, hash: '', salt: '' };
+    saveKeys(apiKeys);
+    logOperation('panel_password_disabled', null, sessionId, clientIp);
+    return res.json({ code: 0, msg: '面板密码已关闭' });
+  }
+
+  if (action === 'change') {
+    // 修改面板密码
+    const cur = apiKeys.panelPassword || { enabled: false };
+    if (!cur.enabled) {
+      // 未开启则视为新建
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
+        return res.status(400).json({ code: -3, msg: '新密码不能为空，且至少 4 个字符' });
+      }
+      const { salt, hash } = hashPassword(newPassword);
+      apiKeys.panelPassword = { enabled: true, hash, salt };
+      saveKeys(apiKeys);
+      logOperation('panel_password_set', null, sessionId, clientIp);
+      return res.json({ code: 0, msg: '面板密码已设置' });
+    }
+
+    // 已开启：验证旧密码，再设置新密码
+    if (!verifyPassword(oldPassword, cur.hash, cur.salt)) {
+      logOperation('panel_password_change_failed', null, sessionId, clientIp);
+      return res.status(403).json({ code: -4, msg: '旧密码错误' });
+    }
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
+      return res.status(400).json({ code: -3, msg: '新密码不能为空，且至少 4 个字符' });
+    }
+    const { salt, hash } = hashPassword(newPassword);
+    apiKeys.panelPassword = { enabled: true, hash, salt };
+    saveKeys(apiKeys);
+    logOperation('panel_password_changed', null, sessionId, clientIp);
+    return res.json({ code: 0, msg: '面板密码已修改' });
+  }
+
+  return res.status(400).json({ code: -5, msg: '未知操作' });
 });
 
 // ======================== 服务器配置接口 ========================
