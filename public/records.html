@@ -13,12 +13,15 @@
       }
     })();
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' }</script>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+<link rel="stylesheet" href="/style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-</head>
+
+  
+  
+
+  <link rel="stylesheet" href="/tailwind.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css"></head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -207,6 +210,8 @@
     
     function renderBackupList(backups) {
       const container = document.getElementById('backupList');
+      const countEl = document.getElementById('backupCount');
+      if (countEl) countEl.textContent = String(backups?.length ?? 0);
       if (!backups || backups.length === 0) {
         container.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">暂无备份</td></tr>';
         return;
@@ -360,7 +365,7 @@
       </div>
       <div class="p-4 overflow-y-auto max-h-[60vh]">
         <div class="mb-4 flex justify-between items-center">
-          <p class="text-sm text-gray-500 dark:text-gray-400">共 ${currentBackups.length} 个备份（最多保留25个）</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">共 <span id="backupCount">0</span> 个备份（最多保留25个）</p>
           <button onclick="createManualBackup()" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg inline-flex items-center gap-1.5">
             <i data-feather="plus-circle" class="w-4 h-4"></i> 手动备份
           </button>
