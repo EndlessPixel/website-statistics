@@ -16,14 +16,16 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
   <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold mb-6">版本管理</h1>
+    <h1 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-feather="tag" class="w-7 h-7"></i>版本管理</h1>
     
     <div id="envCheck" class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
-      <h2 class="text-lg font-semibold mb-4">环境检查</h2>
+      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i data-feather="info" class="w-5 h-5"></i>环境检查</h2>
       <div id="envItems" class="space-y-3">
         <div class="flex items-center gap-3">
           <div id="envGitDir" class="w-5 h-5 rounded-full flex items-center justify-center">⏳</div>
@@ -41,6 +43,7 @@
     </div>
     
     <div id="versionCard" class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i data-feather="tag" class="w-5 h-5"></i>构建信息</h2>
       <div id="versionContent">
         <div class="text-center py-8">
           <div class="text-gray-500 dark:text-gray-400">加载中...</div>
@@ -49,8 +52,8 @@
     </div>
     
     <div class="text-center">
-      <button onclick="refreshVersion()" id="refreshBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
-        刷新版本信息
+      <button onclick="refreshVersion()" id="refreshBtn" class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
+        <i data-feather="refresh-cw" class="w-4 h-4"></i>刷新版本信息
       </button>
     </div>
   </main>
@@ -61,6 +64,7 @@
       AppUtils.initTheme();
       AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
+      if (window.feather) feather.replace();
       checkEnvAndLoad();
     });
     
@@ -160,5 +164,7 @@
       checkEnvAndLoad();
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', function() { if (window.feather) feather.replace(); });</script>
 </body>
 </html>

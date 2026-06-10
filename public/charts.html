@@ -16,17 +16,19 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold mb-6">图表分析</h1>
+    <h1 class="text-2xl font-bold mb-6"><i data-feather="bar-chart-2" class="inline-block w-7 h-7 align-[-4px] mr-2"></i>图表分析</h1>
     
     <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
       <div class="flex flex-wrap gap-2 mb-6">
-        <button onclick="switchChart('pie')" class="chart-tab-active px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">饼图 - IP来源</button>
-        <button onclick="switchChart('bar')" class="chart-tab px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">柱状图 - 访问时间分布</button>
-        <button onclick="switchChart('line')" class="chart-tab px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">折线图 - 访问趋势</button>
+        <button onclick="switchChart('pie')" class="chart-tab-active px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"><i data-feather="pie-chart" class="inline-block w-4 h-4 align-[-2px] mr-1"></i>饼图 - IP来源</button>
+        <button onclick="switchChart('bar')" class="chart-tab px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300"><i data-feather="bar-chart-2" class="inline-block w-4 h-4 align-[-2px] mr-1"></i>柱状图 - 访问时间分布</button>
+        <button onclick="switchChart('line')" class="chart-tab px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300"><i data-feather="trending-up" class="inline-block w-4 h-4 align-[-2px] mr-1"></i>折线图 - 访问趋势</button>
       </div>
       <div id="chartContainer" class="h-80"></div>
     </div>
@@ -43,6 +45,7 @@
       AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       loadStats();
+      if (window.feather) feather.replace();
     });
     
     async function loadStats() {
@@ -177,5 +180,6 @@
       window.addEventListener('resize', () => currentChart.resize());
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.js"></script>
 </body>
 </html>

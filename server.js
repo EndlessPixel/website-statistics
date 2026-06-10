@@ -308,6 +308,55 @@ function verifyPassword(password, storedHash, storedSalt) {
   }
 }
 
+// 从反向代理头 / 请求中安全地提取客户端真实 IP
+// 优先级: X-Forwarded-For(首项) → X-Real-IP → CF-Connecting-IP → X-Client-IP → req.ip → remoteAddress
+function getClientIp(req) {
+  if (!req) return 'unknown';
+  const headerPriority = [
+    'x-forwarded-for',
+    'x-real-ip',
+    'cf-connecting-ip',
+    'x-client-ip',
+    'x-forwarded',
+    'forwarded-for',
+    'forwarded'
+  ];
+
+  for (const key of headerPriority) {
+    const value = req.headers[key];
+    if (!value || typeof value !== 'string') continue;
+    // X-Forwarded-For 是 "client, proxy1, proxy2"，取第一个非空元素
+    if (key === 'x-forwarded-for' || key === 'x-forwarded' || key === 'forwarded-for' || key === 'forwarded') {
+      // 对 "for=xxx, for=yyy" 的 forwarded 也做兼容
+      let parts;
+      if (key === 'forwarded') {
+        const m = value.match(/for=([^;,]+)/i);
+        parts = m ? [m[1].trim().replace(/[\[\]]/g, '')] : [value.trim()];
+      } else {
+        parts = value.split(',').map(s => s.trim());
+      }
+      for (const p of parts) {
+        if (!p) continue;
+        const cleaned = p.replace(/[\[\]]/g, '');
+        if (isValidIp(cleaned)) return cleaned;
+      }
+      // 若均无法识别格式，取第一段作为回退
+      if (parts[0]) return parts[0].replace(/[\[\]]/g, '');
+      continue;
+    }
+    const cleaned = value.trim().split(',')[0].trim().replace(/[\[\]]/g, '');
+    if (cleaned && isValidIp(cleaned)) return cleaned;
+    if (cleaned) return cleaned;
+  }
+
+  // 回退到 Express 的 req.ip（会读取 trust proxy 设置），最终回退到 remoteAddress
+  return (req.ip && req.ip !== '::ffff:127.0.0.1' ? req.ip : null)
+    || (req.connection && req.connection.remoteAddress)
+    || (req.socket && req.socket.remoteAddress)
+    || (req.connection && req.connection.socket && req.connection.socket.remoteAddress)
+    || 'unknown';
+}
+
 // 安全头部设置
 app.use((req, res, next) => {
   // 防止XSS攻击
@@ -320,6 +369,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
+app.set('trust proxy', true); // 信任反向代理头，使 req.ip 可读
 app.use(express.json({ limit: '10kb' })); // 限制请求体大小
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -336,7 +386,7 @@ function checkIpWhitelist(req, res, next) {
     return next();
   }
 
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   const whitelist = apiKeys.ipWhitelist.list || [];
 
   if (!whitelist.includes(clientIp)) {
@@ -837,19 +887,15 @@ app.post('/api/statistics', (req, res) => {
 
   // 3) 域名白名单校验（若开启）
   if (!isDomainAllowed(host)) {
-    console.log(`[reject] 上报域名不在白名单: ip=${sanitizedIp}, host=${host}, reporter=${req.ip}`);
+    console.log(`[reject] 上报域名不在白名单: ip=${sanitizedIp}, host=${host}, reporter=${getClientIp(req)}`);
     return res.status(403).json({
       code: -4,
       msg: '域名不在允许的白名单内'
     });
   }
 
-  // 上报者 IP（使用 Express 获取的真实 IP；无法伪造由后端记录）
-  const reporterIp =
-    (req.headers['x-forwarded-for'] && String(req.headers['x-forwarded-for']).split(',')[0].trim()) ||
-    req.ip ||
-    req.connection.remoteAddress ||
-    'unknown';
+  // 上报者 IP（服务端记录，无法被客户端伪造）
+  const reporterIp = getClientIp(req);
 
   if (!checkRateLimit(reporterIp)) {
     return res.status(429).json({
@@ -1083,7 +1129,7 @@ app.delete('/api/statistics/:id', async (req, res) => {
   const sessionId = getSessionId(req);
   const id = parseInt(req.params.id);
   const force = req.query.force === '1';
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   
   if (!checkLogin(req)) {
     return res.json({ code: -1, msg: '未登录' });
@@ -1123,7 +1169,7 @@ app.delete('/api/statistics/:id', async (req, res) => {
 app.get('/login', (req, res) => {
   const key = req.query.key;
   const password = req.query.password;
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
 
   if (!key) {
     return res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -1155,7 +1201,7 @@ app.get('/login', (req, res) => {
 app.get('/api/login-config', (req, res) => {
   const panelPwd = apiKeys.panelPassword || { enabled: false };
   const ipWl = apiKeys.ipWhitelist || { enabled: false };
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   let ipBlocked = false;
   if (ipWl.enabled && Array.isArray(ipWl.list)) {
     ipBlocked = !ipWl.list.includes(clientIp);
@@ -1246,7 +1292,7 @@ app.get('/settings', (req, res) => {
 
 app.get('/logout', (req, res) => {
   const sessionId = getSessionId(req);
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   if (sessionId) {
     sessions.delete(sessionId);
     logOperation('logout', null, sessionId, clientIp);
@@ -1259,7 +1305,7 @@ app.post('/api/statistics/batch-delete', async (req, res) => {
   const sessionId = getSessionId(req);
   const ids = req.body.ids;
   const force = req.body.force === true;
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   
   if (!checkLogin(req)) {
     return res.json({ code: -1, msg: '未登录' });
@@ -1712,7 +1758,7 @@ app.post('/api/keys', (req, res) => {
 
   const { uapis, ip9, github, ipWhitelist, domainWhitelist } = req.body;
   const sessionId = getSessionId(req);
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
 
   // 更新密钥配置
   if (uapis !== undefined) {
@@ -1787,7 +1833,7 @@ app.post('/api/panel-password', (req, res) => {
   }
 
   const sessionId = getSessionId(req);
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   const { accessKey, action, oldPassword, newPassword } = req.body;
 
   // 必须验证访问密钥（防止会话被窃取后直接修改安全设置）
@@ -1863,7 +1909,7 @@ app.post('/api/server-config', (req, res) => {
   }
 
   const sessionId = req.cookies.sessionId;
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
   const { port, ip } = req.body;
 
   // 验证端口
@@ -1896,7 +1942,7 @@ app.post('/api/restart', (req, res) => {
   }
 
   const sessionId = req.cookies.sessionId;
-  const clientIp = req.ip || req.connection.remoteAddress;
+  const clientIp = getClientIp(req);
 
   // 先记录重启操作日志
   logOperation('server_restart', null, sessionId, clientIp);
