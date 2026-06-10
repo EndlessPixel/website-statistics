@@ -1,0 +1,18 @@
+services:
+  website-stats:
+    build: .
+    container_name: website-stats
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+    # 若是反代到 Nginx/Caddy，加上这些让服务端能拿到真实 IP
+    # networks:
+    #   - web
+# networks:
+#   web:
+#     external: true

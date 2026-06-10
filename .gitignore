@@ -22,8 +22,18 @@ lerna-debug.log*
 *.sqlite3
 statistics.db
 
+# backup
+backup/
+
 # API Keys
 keys.json
+
+# Runtime data (Docker volume / local deployment)
+data/
+
+# One-off debug dumps
+err.txt
+out.txt
 
 # Coverage reports
 coverage/
