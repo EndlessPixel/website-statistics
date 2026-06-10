@@ -169,66 +169,61 @@ function readBackup(filename) {
   });
 }
 
-// 回滚到备份
+// 回滚到备份（注意：本项目用的是 sql.js —— 纯同步 API）
 async function rollbackToBackup(filename) {
   const backupData = await readBackup(filename);
   if (!backupData) {
     return { success: false, message: '无法读取备份文件' };
   }
-  
-  return new Promise((resolve) => {
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
-      
-      // 删除当前所有记录
-      db.run('DELETE FROM statistics', (err) => {
-        if (err) {
-          db.run('ROLLBACK');
-          resolve({ success: false, message: '删除现有记录失败' });
-          return;
-        }
-        
-        // 插入备份记录
-        if (backupData.records.length === 0) {
-          db.run('COMMIT', () => {
-            resolve({ success: true, message: '回滚成功，数据库已清空', count: 0 });
-          });
-          return;
-        }
-        
-        const stmt = db.prepare('INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time, session_id, extra_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-        let completed = 0;
-        
-        backupData.records.forEach(record => {
-          stmt.run(
-            record.ip,
-            record.url,
-            record.path,
-            record.client_time,
-            record.server_time,
-            record.statistics_time,
-            record.session_id,
-            record.extra_info,
-            () => {
-              completed++;
-              if (completed === backupData.records.length) {
-                stmt.finalize(() => {
-                  db.run('COMMIT', () => {
-                    console.log(`回滚到备份: ${filename}`);
-                    resolve({ 
-                      success: true, 
-                      message: `回滚成功，恢复了 ${backupData.records.length} 条记录`,
-                      count: backupData.records.length
-                    });
-                  });
-                });
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  if (!Array.isArray(backupData.records)) {
+    return { success: false, message: '备份文件格式不正确（缺少 records 数组）' };
+  }
+
+  try {
+    db.run('BEGIN TRANSACTION');
+
+    // 清空当前记录
+    db.run('DELETE FROM statistics');
+
+    if (backupData.records.length === 0) {
+      db.run('COMMIT');
+      console.log(`回滚到备份: ${filename}（数据库已清空）`);
+      return { success: true, message: '回滚成功，数据库已清空', count: 0 };
+    }
+
+    // 用预备语句逐条 INSERT（sql.js 的同步写法）
+    const insertSql = 'INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time, session_id, extra_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    const stmt = db.prepare(insertSql);
+
+    for (const record of backupData.records) {
+      stmt.bind([
+        record.ip || '',
+        record.url || '',
+        record.path || '',
+        record.client_time || '',
+        record.server_time || '',
+        record.statistics_time || null,
+        record.session_id || null,
+        record.extra_info || null
+      ]);
+      stmt.step();
+      stmt.reset();
+    }
+
+    stmt.free();
+    db.run('COMMIT');
+
+    console.log(`回滚到备份: ${filename}（恢复 ${backupData.records.length} 条）`);
+    return {
+      success: true,
+      message: `回滚成功，恢复了 ${backupData.records.length} 条记录`,
+      count: backupData.records.length
+    };
+  } catch (err) {
+    console.error(`回滚备份 ${filename} 失败:`, err.message);
+    try { db.run('ROLLBACK'); } catch (_) { /* 已回滚或未开启事务 */ }
+    return { success: false, message: '回滚失败: ' + err.message };
+  }
 }
 
 // 加载密钥配置
@@ -364,7 +359,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   // Content Security Policy
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'; connect-src 'self' https://api.github.com https://uapis.cn https://ip9.com.cn https://vip-84514370.ip9.com.cn;");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://api.github.com https://uapis.cn https://ip9.com.cn https://vip-84514370.ip9.com.cn;");
   next();
 });
 
