@@ -71,6 +71,8 @@ test-results/
 .tmp/
 tmp_err.txt
 tmp_out.txt
+node_err.txt
+node_out.txt
 
 # Production artifacts
 *.pid

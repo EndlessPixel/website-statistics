@@ -4,6 +4,8 @@
   "description": "网页访问统计接口服务",
   "main": "server.js",
   "scripts": {
+    "build:css": "tailwindcss -i ./tailwind.input.css -o ./public/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./tailwind.input.css -o ./public/tailwind.css --watch",
     "start": "node server.js",
     "dev": "node server.js"
   },
@@ -19,5 +21,8 @@
     "sqlite"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
 }
