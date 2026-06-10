@@ -1,391 +1,270 @@
-# 网站接入统计服务指南
+# Website Statistics · 接入指南
 
-本文档详细说明如何在您自己的网站中接入统计服务，实现访问数据上报。
+> 面向个人站长：Hexo / Hugo / Jekyll / Typecho / WordPress / 纯静态博客。  
+> **目标：一行代码不改，只在 footer 里贴一段 JS，就能在你自己的服务里看到"谁看了哪篇"。**
 
-## 接入方式
+---
 
-### 方式一：纯前端 JavaScript 接入（推荐）
+## 先搞懂几件事（不看会踩坑）
 
-在您的网站页面中添加以下 JavaScript 代码即可自动上报访问数据。
+1. **不需要在前端查公网 IP。** 服务端能从 `X-Forwarded-For` / `X-Real-IP` / `CF-Connecting-IP` 里拿真实 IP，前端只需 `fetch` 一次即可。
+2. **不需要 Cookie Banner。** 下面给的示例脚本**不设置任何 Cookie**，也不上报 UA。如果你所在地区法规只要求"有 Cookie 就提示"，那你完全可以不加。
+3. **必须走 HTTPS。** 你的博客是 HTTPS，就不能请求 `http://stats.example.com`（浏览器会拦截）。给统计服务也套上一个反代 HTTPS（推荐 Caddy，一行配置就好）。
+4. **建议把统计服务挂到自己的子域名，比如 `stats.yourdomain.com`。** 不要裸跑 `http://IP:8000`，HTTPS 反代只要一次。
 
-#### 基础示例
+---
+
+## 通用前端接入（所有静态博客都适用）
+
+贴到每个页面的 `<body>` 结束之前。放在 footer / 公共尾部模板里最省事。
 
 ```html
 <script>
-// 统计服务地址（请替换为您的实际服务地址）
-const STATS_SERVER = 'http://localhost:8000';
+(function () {
+  // ====== 只改这里 ======
+  var STATS_SERVER = 'https://stats.yourdomain.com';
+  // =======================
 
-function reportStatistics() {
-  // 获取用户IP（通过第三方服务）
-  fetch('https://api.ipify.org?format=json')
-    .then(response => response.json())
-    .then(data => {
-      const payload = {
-        ip: data.ip,
-        url: window.location.href,
-        path: window.location.pathname,
-        client_time: new Date().toISOString(),
-        server_time: new Date().toISOString()
+  function report() {
+    try {
+      var payload = {
+        url:   window.location.href,
+        path:  window.location.pathname,
+        title: document.title,
+        client_time: new Date().toISOString()
       };
-
-      // 上报统计数据
-      fetch(`${STATS_SERVER}/api/statistics`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
-      .then(response => response.json())
-      .then(result => {
-        console.log('统计上报成功:', result);
-      })
-      .catch(error => {
-        console.error('统计上报失败:', error);
-      });
-    })
-    .catch(error => {
-      console.error('获取IP失败:', error);
-    });
-}
-
-// 页面加载完成后执行上报
-document.addEventListener('DOMContentLoaded', reportStatistics);
-</script>
-```
-
-#### 简化版（无需获取公网IP）
-
-如果您的服务器可以通过请求头获取客户端IP，可以省略IP获取步骤：
-
-```html
-<script>
-const STATS_SERVER = 'http://localhost:8000';
-
-function reportStatistics() {
-  const payload = {
-    ip: 'unknown', // 服务端会自动获取真实IP
-    url: window.location.href,
-    path: window.location.pathname,
-    client_time: new Date().toISOString(),
-    server_time: new Date().toISOString()
-  };
-
-  fetch(`${STATS_SERVER}/api/statistics`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload),
-    mode: 'no-cors' // 如果存在跨域问题可以使用
-  });
-}
-
-document.addEventListener('DOMContentLoaded', reportStatistics);
-</script>
-```
-
-### 方式二：服务端接入
-
-#### Node.js / Express 示例
-
-```javascript
-const axios = require('axios');
-
-// 在路由中添加统计上报
-app.use((req, res, next) => {
-  const payload = {
-    ip: req.ip || req.connection.remoteAddress,
-    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
-    path: req.path,
-    client_time: new Date().toISOString(),
-    server_time: new Date().toISOString()
-  };
-
-  // 异步上报，不影响主流程
-  axios.post('http://localhost:8000/api/statistics', payload)
-    .catch(err => console.error('统计上报失败:', err));
-
-  next();
-});
-```
-
-#### Python / Flask 示例
-
-```python
-import requests
-from datetime import datetime
-from flask import request
-
-@app.before_request
-def report_statistics():
-    payload = {
-        'ip': request.remote_addr,
-        'url': request.url,
-        'path': request.path,
-        'client_time': datetime.now().isoformat(),
-        'server_time': datetime.now().isoformat()
-    }
-    
-    try:
-        requests.post('http://localhost:8000/api/statistics', json=payload)
-    except Exception as e:
-        print(f'统计上报失败: {e}')
-```
-
-#### PHP 示例
-
-```php
-<?php
-function reportStatistics() {
-    $payload = array(
-        'ip' => $_SERVER['REMOTE_ADDR'],
-        'url' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
-        'path' => $_SERVER['REQUEST_URI'],
-        'client_time' => date('c'),
-        'server_time' => date('c')
-    );
-
-    $ch = curl_init('http://localhost:8000/api/statistics');
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5); // 设置超时时间，避免阻塞
-    
-    curl_exec($ch);
-    curl_close($ch);
-}
-
-// 在页面开始时调用
-reportStatistics();
-?>
-```
-
-### 方式三：使用 img 标签（最简单）
-
-适用于无法使用 JavaScript 的场景，或者作为备用方案。
-
-```html
-<!-- 在页面底部添加 -->
-<img 
-  src="http://localhost:8000/api/statistics?ip=unknown&url=YOUR_URL&path=YOUR_PATH&client_time=TIMESTAMP&server_time=TIMESTAMP" 
-  style="display: none;"
-  alt=""
-/>
-```
-
-> **注意**：这种方式需要服务端支持 GET 请求，当前服务只支持 POST。如需使用 GET 方式，请修改 `server.js` 中的接口配置。
-
-## 使用建议
-
-### 1. 避免重复上报
-
-为避免同一用户刷新页面时重复上报，可以使用 localStorage 做简单去重：
-
-```javascript
-function reportStatistics() {
-  const lastReport = localStorage.getItem('lastReportTime');
-  const now = Date.now();
-  
-  // 5分钟内不上报重复数据
-  if (lastReport && now - parseInt(lastReport) < 5 * 60 * 1000) {
-    return;
-  }
-  
-  localStorage.setItem('lastReportTime', now.toString());
-  
-  // 执行上报逻辑...
-}
-```
-
-### 2. 异步上报
-
-建议使用 `fetch` 的 `keepalive` 选项，确保页面卸载时也能完成上报：
-
-```javascript
-fetch(`${STATS_SERVER}/api/statistics`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload),
-  keepalive: true // 页面卸载时仍会发送请求
-});
-```
-
-### 3. 错误处理
-
-```javascript
-fetch(`${STATS_SERVER}/api/statistics`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload)
-})
-.then(response => {
-  if (!response.ok) {
-    throw new Error('Network response was not ok');
-  }
-  return response.json();
-})
-.then(result => {
-  if (result.code !== 0) {
-    console.warn('统计上报返回错误:', result.msg);
-  }
-})
-.catch(error => {
-  // 上报失败不影响主业务
-  console.error('统计上报失败:', error);
-});
-```
-
-### 4. 批量上报（适用于SPA应用）
-
-对于单页应用，可以收集多个页面访问后批量上报：
-
-```javascript
-class StatisticsReporter {
-  constructor(serverUrl) {
-    this.serverUrl = serverUrl;
-    this.queue = [];
-    this.timer = null;
-  }
-
-  report(pageInfo) {
-    this.queue.push(pageInfo);
-    
-    // 每10条或10秒上报一次
-    if (this.queue.length >= 10) {
-      this.flush();
-    } else if (!this.timer) {
-      this.timer = setTimeout(() => this.flush(), 10000);
-    }
-  }
-
-  flush() {
-    if (this.queue.length === 0) return;
-    
-    // 批量上报逻辑（需要服务端支持）
-    const payloads = [...this.queue];
-    this.queue = [];
-    clearTimeout(this.timer);
-    this.timer = null;
-    
-    // 逐条上报（当前服务只支持单条）
-    payloads.forEach(payload => {
-      fetch(this.serverUrl, {
+      fetch(STATS_SERVER + '/api/statistics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        keepalive: true,          // 页面关掉也能尽量发出去
+        mode: 'cors'
       });
-    });
+    } catch (e) { /* 统计失败不影响用户读博客 */ }
   }
-}
 
-// 使用
-const reporter = new StatisticsReporter('http://localhost:8000/api/statistics');
-
-// 在路由切换时调用
-reporter.report({
-  ip: userIp,
-  url: window.location.href,
-  path: window.location.pathname,
-  client_time: new Date().toISOString(),
-  server_time: new Date().toISOString()
-});
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', report);
+  else
+    report();
+})();
+</script>
 ```
 
-## 接入检查清单
+### 为什么长这样？
 
-- [ ] 确认统计服务已启动且可访问
-- [ ] 替换示例中的服务地址为实际地址
-- [ ] 确保服务端配置了正确的 CORS 策略
-- [ ] 在测试环境验证上报是否正常
-- [ ] 考虑添加上报失败的降级处理
+- `keepalive: true`：用户刷新 / 点走时，浏览器也尽量把请求发完。
+- `title`：顺便把文章标题传进去，后台记录更直观。
+- `try/catch`：统计服务挂了，**绝不能**影响博客加载。
+- 没写任何 `document.cookie`。
 
-## 常见问题
+---
 
-### Q: 跨域问题如何解决？
+## Hexo 接入
 
-服务端已经配置了 CORS，通常不需要额外处理。如果仍有问题，可以：
+主题目录通常是 `themes/<主题名>/layout/`。最稳的方式是**改 footer 模板**。
 
-1. 使用代理（推荐）
-2. 设置 `mode: 'no-cors'`（只能发送请求，无法获取响应）
-3. 在服务端添加您的域名到白名单
+### 方案 A：贴到主题模板的 footer 里
 
-### Q: 如何获取真实客户端IP？
+找到 `themes/<你的主题>/layout/_partial/footer.ejs`（有的主题叫 `after-footer.ejs`），把上面那段 `<script>` 贴到最后。
 
-服务端会从以下位置获取IP：
-- `req.ip`
-- `req.connection.remoteAddress`
-- `X-Forwarded-For` 请求头
+### 方案 B：用 Hexo 自带的 `injector`（最干净，更新主题不丢）
 
-如果您的网站使用了代理（如 Nginx），请确保正确传递客户端IP。
+在博客根目录的 `scripts/` 里新建一个文件 `scripts/inject-stats.js`：
 
-### Q: 是否会影响网站性能？
+```js
+hexo.extend.injector.register('body_end', `
+<script>
+(function(){
+  var STATS_SERVER = 'https://stats.yourdomain.com';
+  function report(){
+    try{ fetch(STATS_SERVER+'/api/statistics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:location.href,path:location.pathname,title:document.title,client_time:new Date().toISOString()}),keepalive:true}); }catch(e){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',report);else report();
+})();
+</script>
+`, 'default');
+```
 
-上报请求是异步的，不会阻塞页面加载。建议设置合理的超时时间（如5秒），避免因服务不可用导致长时间等待。
+然后 `hexo clean && hexo g && hexo d` 即可。所有生成的页面尾部都会带上这段脚本。
 
-## 示例项目
+---
 
-以下是一个完整的 HTML 页面接入示例：
+## Hugo 接入
+
+Hugo 用的是 Go 模板。把脚本贴到主题的 `footer` 或者自定义 `partial` 里。
+
+### 方案 A：改主题 footer
+
+在你的主题里找 `layouts/partials/footer.html` 或 `layouts/_default/baseof.html`，在 `</body>` 之前贴通用那段。
+
+### 方案 B：不侵入主题，建一个自定义 `partial`
+
+在博客根目录（**不是主题目录**）新建 `layouts/partials/stats.html`：
 
 ```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>我的网站</title>
-</head>
-<body>
-  <h1>欢迎访问我的网站</h1>
-  
-  <script>
-    (function() {
-      const STATS_SERVER = 'http://localhost:8000';
-      
-      function getClientIp() {
-        return new Promise((resolve) => {
-          fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
-            .then(data => resolve(data.ip))
-            .catch(() => resolve('unknown'));
-        });
-      }
-      
-      async function report() {
-        const ip = await getClientIp();
-        const payload = {
-          ip: ip,
-          url: window.location.href,
-          path: window.location.pathname,
-          client_time: new Date().toISOString(),
-          server_time: new Date().toISOString()
-        };
-        
-        try {
-          const response = await fetch(`${STATS_SERVER}/api/statistics`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            keepalive: true
-          });
-          const result = await response.json();
-          console.log('统计上报:', result.code === 0 ? '成功' : '失败');
-        } catch (error) {
-          console.log('统计上报失败（网络问题）');
-        }
-      }
-      
-      // 页面加载完成后上报
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', report);
-      } else {
-        report();
-      }
-    })();
-  </script>
-</body>
-</html>
+<script>
+(function(){
+  var STATS_SERVER = 'https://stats.yourdomain.com';
+  function report(){
+    try{ fetch(STATS_SERVER+'/api/statistics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:location.href,path:location.pathname,title:document.title,client_time:new Date().toISOString()}),keepalive:true}); }catch(e){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',report);else report();
+})();
+</script>
+```
+
+然后在主题的某个 footer 模板里加一行（没有的话在 `baseof.html` 里的 `</body>` 之前加）：
+
+```go-html-template
+{{ partial "stats.html" . }}
+```
+
+这样即使主题更新，你的 `layouts/partials/stats.html` 也不会丢。
+
+---
+
+## Jekyll 接入
+
+最简单：在 `_includes/` 新建 `stats.html`，内容是上面那段 `<script>`，然后在 `_layouts/default.html` 的 `</body>` 之前引入：
+
+```html
+{% include stats.html %}
+```
+
+如果你用了 minima / minimal-mistakes 这种主题，它们通常有 `footer.html` 这种 include，直接把脚本追加进去也行。
+
+---
+
+## Typecho 接入
+
+Typecho 是 PHP 模板，最直接：
+
+### 方案 A：改主题 `footer.php`
+
+在主题目录（比如 `themes/default/`）里找 `footer.php`，在 `</body>` 之前贴脚本。
+
+### 方案 B：用后台"设置 → 外观 → 自定义 HTML / CSS"（如果主题提供）
+
+有的主题提供"页脚自定义代码"框，直接贴 `<script>... </script>`。
+
+---
+
+## WordPress 接入
+
+三种常见方式：
+
+1. **改主题 `footer.php`**：`wp-content/themes/<你的主题>/footer.php`，`</body>` 之前贴。
+2. **子主题 footer**（推荐，升级主题不丢）：子主题里放一个 `footer.php`，覆盖父主题。
+3. **自定义 HTML 小工具**：后台 → 外观 → 小工具 → 拖一个"自定义 HTML"到页脚区域，贴脚本。
+
+> WordPress 自带有 `wp_footer` 钩子，高级用法可以写一个必须插件，把脚本挂到 `wp_footer` 上，但上面三种方式对 99% 的个人博客已经够用。
+
+---
+
+## 反代配置（Nginx / Caddy）
+
+前面说了：**统计服务必须走 HTTPS**（否则 HTTPS 的博客会拦截 HTTP 请求）。你可以在你博客反代所在的服务器上再加一条。
+
+### Caddy（推荐，最简单）
+
+```caddyfile
+stats.yourdomain.com {
+    reverse_proxy 127.0.0.1:8000
+}
+```
+
+Caddy 会自动申请 Let's Encrypt 证书。
+
+### Nginx
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name stats.yourdomain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name stats.yourdomain.com;
+
+    # 你自己的 SSL 配置，或者用 certbot
+    # ssl_certificate     /etc/letsencrypt/live/stats.yourdomain.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/stats.yourdomain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**关键：这两行保证服务端拿到真实 IP，而不是 127.0.0.1：**
+
+```
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 ```
 
 ---
 
-如有其他问题，请查看 [README.md](README.md) 或联系服务管理员。
+## 验证接入成功
+
+1. 重新生成 / 部署博客。
+2. 打开一篇文章，按 F12 → Network，看有没有一条 `POST` 请求到 `https://stats.yourdomain.com/api/statistics`，返回 `200`。
+3. 登录 `https://stats.yourdomain.com/login`，看"访问记录"里是不是出现刚看的那篇文章的 URL。
+4. （可选）把 `STATS_SERVER` 改成子域之后，你也可以改 `keys.json` 里的 `domainWhitelist`，只接受来自你自己博客域名的请求，防别人乱刷。
+
+---
+
+## 防乱刷：域名白名单
+
+服务端读取 `keys.json` 里的 `domainWhitelist`，格式：
+
+```json
+{
+  "domainWhitelist": [
+    "yourdomain.com",
+    "blog.anotherdomain.com"
+  ]
+}
+```
+
+- 精确匹配：如 `blog.anotherdomain.com`
+- 子域名匹配：写 `yourdomain.com` 时，`blog.yourdomain.com`、`www.yourdomain.com` 都放行
+
+白名单留空或不写 = 不校验，任何人都能调用 `/api/statistics`。
+
+---
+
+## 最佳实践总结
+
+- ✅ 给统计服务套 HTTPS 子域名
+- ✅ 脚本放在 `</body>` 之前，用 `keepalive: true`
+- ✅ 不设置 Cookie，不上报 UA
+- ✅ `try/catch` 包一层，失败不影响页面
+- ✅ 开 `domainWhitelist`，只收你自己博客的请求
+- ❌ 不要让脚本阻塞渲染
+- ❌ 不要把统计挂在第三方 CDN（那样你又回到"数据在别人手上"的老路上了）
+
+---
+
+## API 速查（给需要二开的人）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/statistics` | 上报访问，body: `{url, path, title, client_time}` |
+| `GET`  | `/api/getStatistics?page=1&pageSize=25` | 分页获取记录 |
+| `GET`  | `/api/overview` | 概览数据 |
+| `GET`  | `/api/getStats` | 图表数据 |
+| `GET`  | `/api/query-ip?ip=x.x.x.x` | IP 归属地查询 |
+| `DELETE` | `/api/statistics/:id` | 删除单条 |
+| `POST` | `/api/statistics/batch-delete` | 批量删除 |
+
+完整文档登录后访问 `/api-docs`。
