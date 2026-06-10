@@ -23,7 +23,7 @@ lerna-debug.log*
 statistics.db
 
 # backup
-backup/
+backups/
 
 # API Keys
 keys.json
