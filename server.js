@@ -48,7 +48,7 @@ function createBackup(reason = 'manual') {
     const backupPath = path.join(BACKUP_DIR, backupName);
     
     try {
-      const results = db.exec('SELECT * FROM statistics ORDER BY id DESC');
+      const results = db.exec('SELECT id, ip, url, path, client_time, server_time, statistics_time, reporter_ip FROM statistics ORDER BY id DESC');
       const records = results.length > 0 ? results[0].values.map(row => ({
         id: row[0],
         ip: row[1],
@@ -57,8 +57,7 @@ function createBackup(reason = 'manual') {
         client_time: row[4],
         server_time: row[5],
         statistics_time: row[6],
-        session_id: row[7],
-        extra_info: row[8]
+        reporter_ip: row[7]
       })) : [];
       
       const backupData = {
@@ -192,7 +191,9 @@ async function rollbackToBackup(filename) {
     }
 
     // 用预备语句逐条 INSERT（sql.js 的同步写法）
-    const insertSql = 'INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time, session_id, extra_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    // 注意：statistics 表真实列只有 (ip, url, path, client_time, server_time, statistics_time, reporter_ip)
+    // 不要写入 session_id / extra_info，也不要写入 id（让它自增）
+    const insertSql = 'INSERT INTO statistics (ip, url, path, client_time, server_time, statistics_time, reporter_ip) VALUES (?, ?, ?, ?, ?, ?, ?)';
     const stmt = db.prepare(insertSql);
 
     for (const record of backupData.records) {
@@ -203,8 +204,7 @@ async function rollbackToBackup(filename) {
         record.client_time || '',
         record.server_time || '',
         record.statistics_time || null,
-        record.session_id || null,
-        record.extra_info || null
+        record.reporter_ip || null
       ]);
       stmt.step();
       stmt.reset();
@@ -359,7 +359,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   // Content Security Policy
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://api.github.com https://uapis.cn https://ip9.com.cn https://vip-84514370.ip9.com.cn;");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://avatars.githubusercontent.com; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://api.github.com https://uapis.cn https://ip9.com.cn https://vip-84514370.ip9.com.cn;");
   next();
 });
 
@@ -1077,7 +1077,7 @@ app.get('/api/overview', (req, res) => {
 // 重新编号统计记录
 function renumberStatistics() {
   try {
-    // 创建临时表
+    // 创建临时表（与实际 statistics 表一致的字段集）
     db.run(`
       CREATE TABLE IF NOT EXISTS statistics_temp (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1086,16 +1086,17 @@ function renumberStatistics() {
         path TEXT,
         client_time TEXT,
         server_time TEXT,
-        statistics_time TEXT
+        statistics_time TEXT,
+        reporter_ip TEXT
       )
     `);
     
     // 复制数据到临时表（按原ID排序，新ID从1开始）
-    const rows = db.exec('SELECT ip, url, path, client_time, server_time, statistics_time FROM statistics ORDER BY id');
+    const rows = db.exec('SELECT ip, url, path, client_time, server_time, statistics_time, reporter_ip FROM statistics ORDER BY id');
     if (rows.length > 0 && rows[0].values.length > 0) {
       const insertStmt = db.prepare(`
-        INSERT INTO statistics_temp (ip, url, path, client_time, server_time, statistics_time)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO statistics_temp (ip, url, path, client_time, server_time, statistics_time, reporter_ip)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
       for (const row of rows[0].values) {
         insertStmt.bind(row);
