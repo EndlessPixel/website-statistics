@@ -16,11 +16,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold mb-6">数据概览</h1>
+    <h1 class="text-2xl font-bold mb-6"><i data-feather="bar-chart-2" class="inline-block w-7 h-7 align-[-4px] mr-2"></i>数据概览</h1>
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
@@ -30,7 +32,7 @@
             <p id="totalVisits" class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">-</p>
           </div>
           <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-            <span class="text-2xl">📊</span>
+            <i data-feather="activity" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
           </div>
         </div>
       </div>
@@ -42,7 +44,7 @@
             <p id="uniqueIps" class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">-</p>
           </div>
           <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-            <span class="text-2xl">🌐</span>
+            <i data-feather="globe" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
           </div>
         </div>
       </div>
@@ -54,7 +56,7 @@
             <p id="todayVisits" class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">-</p>
           </div>
           <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-            <span class="text-2xl">📈</span>
+            <i data-feather="trending-up" class="w-6 h-6 text-purple-600 dark:text-purple-400"></i>
           </div>
         </div>
       </div>
@@ -66,14 +68,14 @@
             <p id="topPage" class="text-lg font-bold mt-2 text-gray-900 dark:text-white truncate max-w-[150px]">-</p>
           </div>
           <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-            <span class="text-2xl">🔥</span>
+            <i data-feather="flame" class="w-6 h-6 text-orange-600 dark:text-orange-400"></i>
           </div>
         </div>
       </div>
     </div>
     
     <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
-      <h2 class="text-lg font-semibold mb-4">访问趋势</h2>
+      <h2 class="text-lg font-semibold mb-4"><i data-feather="bar-chart-2" class="inline-block w-5 h-5 align-[-3px] mr-1 text-blue-600 dark:text-blue-400"></i>访问趋势</h2>
       <div id="trendChart" class="h-64"></div>
     </div>
   </main>
@@ -86,6 +88,7 @@
       AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       loadOverview();
+      if (window.feather) feather.replace();
     });
     
     async function loadOverview() {
@@ -157,5 +160,6 @@
       window.addEventListener('resize', () => chart.resize());
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.js"></script>
 </body>
 </html>

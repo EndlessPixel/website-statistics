@@ -98,17 +98,12 @@ function renderNavigationBar() {
         </div>
         <div class="flex items-center gap-3">
           <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
+            <i data-feather="menu" class="w-6 h-6"></i>
           </button>
           <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="5"></circle>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-            </svg>
+            <i data-feather="sun" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
           </button>
-          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700">退出</a>
+          <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 inline-flex items-center gap-1.5"><i data-feather="log-out" class="w-4 h-4"></i>退出</a>
         </div>
       </div>
     </div>
@@ -130,6 +125,8 @@ function renderNavigationBar() {
       mobileMenu.classList.toggle('hidden');
     });
   }
+
+  if (typeof feather !== 'undefined') feather.replace();
 }
 
 // ======================== Footer ========================
@@ -275,7 +272,7 @@ function applyPageSize(newSize, callback) {
     updateSelectedCount();
     callback();
   } else {
-    alert('每页数量必须在1-100之间');
+    showPrompt('每页数量必须在1-100之间', false);
   }
 }
 
@@ -377,9 +374,9 @@ function handleDelete(id, event, callback) {
   if (isShiftPressed) {
     deleteRecord(id, true, callback);
   } else {
-    if (confirm('确定要删除这条记录吗？')) {
+    AppUtils.showConfirmModal('删除记录', '确定要删除这条记录吗？', function() {
       deleteRecord(id, false, callback);
-    }
+    });
   }
 }
 
@@ -396,12 +393,12 @@ function deleteRecord(id, force = false, callback) {
         updateSelectedCount();
         if (callback) callback();
       } else {
-        alert(data.msg);
+        showPrompt(data.msg, false);
       }
     })
     .catch(error => {
       console.error('删除失败:', error);
-      alert('删除失败');
+      showPrompt('删除失败', false);
     });
 }
 
@@ -410,12 +407,16 @@ function deleteRecord(id, force = false, callback) {
  */
 function handleBatchDelete(force = false, callback) {
   if (paginationState.selectedIds.size === 0) {
-    alert('请先选择要删除的记录');
+    showPrompt('请先选择要删除的记录', false);
     return;
   }
   
-  if (force || confirm(`确定要删除选中的 ${paginationState.selectedIds.size} 条记录吗？`)) {
+  if (force) {
     batchDelete(force, callback);
+  } else {
+    AppUtils.showConfirmModal('批量删除', `确定要删除选中的 ${paginationState.selectedIds.size} 条记录吗？`, function() {
+      batchDelete(force, callback);
+    });
   }
 }
 
@@ -437,12 +438,12 @@ function batchDelete(force = false, callback) {
       updateSelectedCount();
       if (callback) callback();
     } else {
-      alert(data.msg);
+      showPrompt(data.msg, false);
     }
   })
   .catch(error => {
     console.error('批量删除失败:', error);
-    alert('批量删除失败');
+    showPrompt('批量删除失败', false);
   });
 }
 
@@ -464,27 +465,30 @@ function queryIp(ip) {
   content.innerHTML = `
 <div class="text-center py-6 px-4 max-w-xl mx-auto">
   <p class="text-gray-700 dark:text-gray-300 text-lg font-medium mb-5">请选择查询方式</p>
-  
+
   <div class="grid grid-cols-3 gap-4">
-    <button 
-      onclick="AppUtils.executeIpQuery('${ip}', 'ip9')" 
-      class="px-3 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center"
+    <button
+      onclick="AppUtils.executeIpQuery('${ip}', 'ip9')"
+      class="px-3 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center gap-2"
     >
-      <span class="font-medium">ip9.com.cn</span>
+      <i data-feather="globe" class="w-5 h-5"></i>
+      <span class="font-medium text-sm">ip9.com.cn</span>
     </button>
 
-    <button 
-      onclick="AppUtils.executeIpQuery('${ip}', 'uapis')" 
-      class="px-3 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center"
+    <button
+      onclick="AppUtils.executeIpQuery('${ip}', 'uapis')"
+      class="px-3 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center gap-2"
     >
-      <span class="font-medium">uapis.cn</span>
+      <i data-feather="server" class="w-5 h-5"></i>
+      <span class="font-medium text-sm">uapis.cn</span>
     </button>
 
-    <button 
-      onclick="AppUtils.executeIpQuery('${ip}', 'ip-api')" 
-      class="px-3 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center"
+    <button
+      onclick="AppUtils.executeIpQuery('${ip}', 'ip-api')"
+      class="px-3 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center gap-2"
     >
-      <span class="font-medium">ip-api.com</span>
+      <i data-feather="map-pin" class="w-5 h-5"></i>
+      <span class="font-medium text-sm">ip-api.com</span>
     </button>
   </div>
 
@@ -494,6 +498,7 @@ function queryIp(ip) {
 </div>
   `;
   modal.style.display = 'block';
+  if (typeof feather !== 'undefined') feather.replace();
 }
 
 /**
@@ -521,11 +526,12 @@ function executeIpQuery(ip, api) {
           <div class="text-center">
             <p class="text-red-500 dark:text-red-400 mb-2">${data.msg || '查询失败'}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">通过 ${apiNames[api] || api} 查询失败，请选择其他通道重试</p>
-            <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors">
-              ← 返回选择通道
+            <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+              <i data-feather="arrow-left" class="w-4 h-4"></i> 返回选择通道
             </button>
           </div>
         `;
+        if (typeof feather !== 'undefined') feather.replace();
       }
     })
     .catch(error => {
@@ -534,11 +540,12 @@ function executeIpQuery(ip, api) {
         <div class="text-center">
           <p class="text-red-500 dark:text-red-400 mb-2">网络错误，查询失败</p>
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">请检查网络连接后重试</p>
-          <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors">
-            ← 返回选择通道
+          <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+            <i data-feather="arrow-left" class="w-4 h-4"></i> 返回选择通道
           </button>
         </div>
       `;
+      if (typeof feather !== 'undefined') feather.replace();
     });
 }
 
@@ -568,8 +575,8 @@ function renderIpInfo(ipInfo) {
     <div class="mb-4 flex items-center justify-between">
       <span class="text-xs px-2 py-1 rounded ${sourceClass}">来源: ${sourceLabel}</span>
       <div class="flex gap-2">
-        <button onclick="AppUtils.showRawData('${rawData}')" class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline">查看原始返回</button>
-        <button onclick="AppUtils.queryIp('${ipInfo.ip}')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">← 返回选择通道</button>
+        <button onclick="AppUtils.showRawData('${rawData}')" class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline inline-flex items-center gap-1"><i data-feather="code" class="w-3.5 h-3.5"></i>查看原始返回</button>
+        <button onclick="AppUtils.queryIp('${ipInfo.ip}')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"><i data-feather="arrow-left" class="w-3.5 h-3.5"></i>返回选择通道</button>
       </div>
     </div>
     <div class="ip-info-grid">
@@ -585,6 +592,7 @@ function renderIpInfo(ipInfo) {
   `;
   
   content.innerHTML = infoHtml;
+  if (typeof feather !== 'undefined') feather.replace();
 }
 
 /**
@@ -598,10 +606,11 @@ function showRawData(rawData) {
   
   content.innerHTML = `
     <div class="mb-4">
-      <button onclick="AppUtils.renderIpInfo(JSON.parse(decodeURIComponent('${rawData}')))" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 block">← 返回格式化显示</button>
+      <button onclick="AppUtils.renderIpInfo(JSON.parse(decodeURIComponent('${rawData}')))" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 inline-flex items-center gap-1"><i data-feather="arrow-left" class="w-3.5 h-3.5"></i>返回格式化显示</button>
       <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 dark:text-gray-200 p-4 rounded-lg text-xs overflow-x-auto max-h-80 overflow-y-auto">${decodedData}</pre>
     </div>
   `;
+  if (typeof feather !== 'undefined') feather.replace();
 }
 
 /**
@@ -610,6 +619,69 @@ function showRawData(rawData) {
 function closeIpModal() {
   const modal = document.getElementById('ipModal');
   if (modal) modal.style.display = 'none';
+}
+
+// ======================== 自定义模态框 ========================
+
+/**
+ * 显示确认模态框
+ * @param {string} title - 标题
+ * @param {string} message - 消息内容
+ * @param {Function} onOk - 确认回调
+ */
+function showConfirmModal(title, message, onOk) {
+  const modalId = 'app-confirm-modal';
+
+  // 如已存在则移除
+  const existing = document.getElementById(modalId);
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = modalId;
+  overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  overlay.innerHTML = `
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+      <div class="p-4 border-b border-gray-200 dark:border-neutral-800 flex items-center gap-2">
+        <i data-feather="alert-circle" class="w-5 h-5 text-amber-500"></i>
+        <h3 class="font-semibold text-gray-900 dark:text-white">${title}</h3>
+      </div>
+      <div class="p-4">
+        <p class="text-sm text-gray-700 dark:text-gray-300">${message}</p>
+      </div>
+      <div class="p-4 border-t border-gray-200 dark:border-neutral-800 flex justify-end gap-2">
+        <button data-action="cancel" class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm inline-flex items-center gap-1.5">
+          <i data-feather="x" class="w-4 h-4"></i> 取消
+        </button>
+        <button data-action="ok" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm inline-flex items-center gap-1.5">
+          <i data-feather="check" class="w-4 h-4"></i> 确认
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // 渲染图标
+  if (typeof feather !== 'undefined') feather.replace();
+
+  const cancelBtn = overlay.querySelector('[data-action="cancel"]');
+  const okBtn = overlay.querySelector('[data-action="ok"]');
+
+  const remove = function() {
+    if (overlay && overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay);
+    }
+  };
+
+  cancelBtn.addEventListener('click', remove);
+  okBtn.addEventListener('click', function() {
+    remove();
+    if (typeof onOk === 'function') onOk();
+  });
+
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) remove();
+  });
 }
 
 // ======================== 导出公共API ========================
@@ -656,5 +728,17 @@ window.AppUtils = {
   executeIpQuery,
   renderIpInfo,
   showRawData,
-  closeIpModal
+  closeIpModal,
+
+  // 模态框
+  showConfirmModal
 };
+
+// 初始化渲染 feather 图标
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof feather !== 'undefined') feather.replace();
+  });
+} else if (typeof feather !== 'undefined') {
+  feather.replace();
+}

@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>高级设置 - WebsiteStatistics</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -152,7 +154,7 @@
             class="flex-1 px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm"
             placeholder="输入 IP 地址，如 192.168.1.1 或 ::1">
           <button onclick="addIpToWhitelist()"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">添加</button>
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"><i data-feather="plus"></i>添加</button>
         </div>
         <div id="ipWhitelistContainer" class="space-y-2 max-h-64 overflow-y-auto">
           <!-- 动态渲染 -->
@@ -186,7 +188,7 @@
             class="flex-1 px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm"
             placeholder="如 example.com 或 .example.com（含子域名）">
           <button onclick="addDomainToWhitelist()"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">添加</button>
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"><i data-feather="plus"></i>添加</button>
         </div>
         <div id="domainWhitelistContainer" class="space-y-2 max-h-64 overflow-y-auto">
           <!-- 动态渲染 -->
@@ -236,9 +238,9 @@
         </div>
         <div class="flex flex-wrap gap-2">
           <button onclick="changePanelPassword()"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">设置/修改密码</button>
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"><i data-feather="lock"></i>设置/修改密码</button>
           <button onclick="disablePanelPassword()"
-            class="px-4 py-2 bg-gray-200 dark:bg-neutral-700 hover:bg-gray-300 dark:hover:bg-neutral-600 text-gray-800 dark:text-gray-100 rounded-lg text-sm transition-colors">关闭密码</button>
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 dark:bg-neutral-700 hover:bg-gray-300 dark:hover:bg-neutral-600 text-gray-800 dark:text-gray-100 rounded-lg text-sm transition-colors"><i data-feather="key"></i>关闭密码</button>
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
           密码使用 SHA-512 + 随机 salt 存储，不会明文保存。开启/关闭/修改密码都必须提供访问密钥以确认身份。
@@ -617,18 +619,18 @@
     </div>
 
     <!-- 保存按钮区域 -->
-    <div class="mt-6 flex justify-end gap-3">
+    <div class="mt-6 flex justify-end gap-3 flex-wrap">
       <button onclick="resetSettings()"
-        class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors">
-        重置
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors">
+        <i data-feather="refresh-cw"></i>重置
       </button>
       <button onclick="restartServer()"
-        class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm transition-colors shadow-sm">
-        重启服务
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm transition-colors shadow-sm">
+        <i data-feather="power"></i>重启服务
       </button>
       <button onclick="saveSettings()"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">
-        保存配置
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">
+        <i data-feather="save"></i>保存配置
       </button>
     </div>
 
@@ -686,6 +688,7 @@
         });
       }
       loadSettings();
+      if (typeof feather !== 'undefined' && feather.replace) feather.replace();
     });
 
     // ============== 折叠切换 ==============
@@ -786,7 +789,7 @@
         row.className = 'flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700';
         row.innerHTML = `
           <span class="text-sm text-gray-800 dark:text-gray-100 font-mono flex-1 break-all">${escapeHtml(ip)}</span>
-          <button type="button" class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors">删除</button>
+          <button type="button" class="inline-flex items-center gap-1 px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors"><i data-feather="trash-2"></i>删除</button>
         `;
         row.querySelector('button').addEventListener('click', () => {
           ipWhitelist.splice(idx, 1);
@@ -794,6 +797,7 @@
         });
         container.appendChild(row);
       });
+      if (typeof feather !== 'undefined' && feather.replace) feather.replace();
     }
 
     function addIpToWhitelist() {
@@ -804,11 +808,11 @@
       const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
       const ipv6 = /^[0-9a-fA-F:]+$/;
       if (!ipv4.test(value) && !ipv6.test(value)) {
-        alert('IP 地址格式不正确');
+        showPrompt('IP 地址格式不正确', false);
         return;
       }
       if (ipWhitelist.includes(value)) {
-        alert('该 IP 已在白名单中');
+        showPrompt('该 IP 已在白名单中', false);
         return;
       }
       ipWhitelist.push(value);
@@ -829,7 +833,7 @@
         row.className = 'flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700';
         row.innerHTML = `
           <span class="text-sm text-gray-800 dark:text-gray-100 font-mono flex-1 break-all">${escapeHtml(domain)}</span>
-          <button type="button" class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors">删除</button>
+          <button type="button" class="inline-flex items-center gap-1 px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors"><i data-feather="trash-2"></i>删除</button>
         `;
         row.querySelector('button').addEventListener('click', () => {
           domainWhitelist.splice(idx, 1);
@@ -837,6 +841,7 @@
         });
         container.appendChild(row);
       });
+      if (typeof feather !== 'undefined' && feather.replace) feather.replace();
     }
 
     function addDomainToWhitelist() {
@@ -847,15 +852,15 @@
       const toCheck = value.startsWith('.') ? value.substring(1) : value;
       // 基本域名格式校验：必须包含字母数字/-/.，且至少包含一个 '.'（除 IPv4/IPv6 字面量）
       if (!/^[a-zA-Z0-9\-\.]+$/.test(toCheck)) {
-        alert('域名包含非法字符');
+        showPrompt('域名包含非法字符', false);
         return;
       }
       if (toCheck.length > 253) {
-        alert('域名过长');
+        showPrompt('域名过长', false);
         return;
       }
       if (domainWhitelist.includes(value)) {
-        alert('该域名已在白名单中');
+        showPrompt('该域名已在白名单中', false);
         return;
       }
       domainWhitelist.push(value);
@@ -874,14 +879,14 @@
       // 验证端口
       const portValue = parseInt(document.getElementById('serverPort').value);
       if (!portValue || portValue < 1 || portValue > 65535) {
-        alert('端口必须在 1-65535 之间');
+        showPrompt('端口必须在 1-65535 之间', false);
         return;
       }
 
       // 验证 IP 格式
       const ipValue = document.getElementById('serverIp').value.trim();
       if (!ipValue) {
-        alert('绑定IP不能为空');
+        showPrompt('绑定IP不能为空', false);
         return;
       }
 
@@ -943,11 +948,14 @@
           messages.push('✗ API/白名单配置保存失败: ' + (data.msg || '未知错误'));
         }
 
-        alert(messages.join('\n'));
+        const allOk = serverData.code === 0 && data.code === 0;
+        messages.forEach(function (msg, i) {
+          setTimeout(function () { showPrompt(msg, allOk || (!msg.startsWith('✗') && serverData.code === 0 && data.code === 0)); }, i * 150);
+        });
         loadSettings();
       } catch (error) {
         console.error('保存配置失败:', error);
-        alert('网络错误，保存失败，请检查后端服务是否正常');
+        showPrompt('网络错误，保存失败，请检查后端服务是否正常', false);
       }
     }
 
@@ -958,11 +966,11 @@
       const newPassword = document.getElementById('newPassword').value;
 
       if (!accessKey) {
-        alert('请输入访问密钥');
+        showPrompt('请输入访问密钥', false);
         return;
       }
       if (!newPassword || newPassword.length < 4) {
-        alert('新密码不能为空，且至少 4 个字符');
+        showPrompt('新密码不能为空，且至少 4 个字符', false);
         return;
       }
 
@@ -970,7 +978,7 @@
       const payload = { accessKey, action, newPassword };
       if (panelPasswordEnabled) {
         if (!oldPassword) {
-          alert('请输入旧密码');
+          showPrompt('请输入旧密码', false);
           return;
         }
         payload.oldPassword = oldPassword;
@@ -984,70 +992,72 @@
         });
         const data = await response.json();
         if (data.code === 0) {
-          alert('✓ ' + (data.msg || '密码已更新'));
+          showPrompt('✓ ' + (data.msg || '密码已更新'), true);
           document.getElementById('oldPassword').value = '';
           document.getElementById('newPassword').value = '';
           loadSettings();
         } else {
-          alert('✗ ' + (data.msg || '操作失败'));
+          showPrompt('✗ ' + (data.msg || '操作失败'), false);
         }
       } catch (e) {
         console.error(e);
-        alert('请求失败，请检查服务');
+        showPrompt('请求失败，请检查服务', false);
       }
     }
 
     async function disablePanelPassword() {
       const accessKey = document.getElementById('panelPasswordAccessKey').value.trim();
       if (!accessKey) {
-        alert('请输入访问密钥');
+        showPrompt('请输入访问密钥', false);
         return;
       }
-      if (!confirm('确定要关闭面板密码保护吗？')) return;
-
-      try {
-        const response = await fetch('/api/panel-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessKey, action: 'disable' })
-        });
-        const data = await response.json();
-        if (data.code === 0) {
-          alert('✓ 面板密码已关闭');
-          document.getElementById('newPassword').value = '';
-          document.getElementById('oldPassword').value = '';
-          loadSettings();
-        } else {
-          alert('✗ ' + (data.msg || '操作失败'));
-        }
-      } catch (e) {
-        console.error(e);
-        alert('请求失败，请检查服务');
-      }
+      showConfirmModal('关闭密码保护', '确定要关闭面板密码保护吗？', function () {
+        (async function () {
+          try {
+            const response = await fetch('/api/panel-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessKey, action: 'disable' })
+            });
+            const data = await response.json();
+            if (data.code === 0) {
+              showPrompt('✓ 面板密码已关闭', true);
+              document.getElementById('newPassword').value = '';
+              document.getElementById('oldPassword').value = '';
+              loadSettings();
+            } else {
+              showPrompt('✗ ' + (data.msg || '操作失败'), false);
+            }
+          } catch (e) {
+            console.error(e);
+            showPrompt('请求失败，请检查服务', false);
+          }
+        })();
+      });
     }
 
     // ============== 其他按钮 ==============
     function restartServer() {
-      if (confirm('⚠️ 确定要重启服务吗？\n\n重启期间服务将暂时不可用，所有未保存的操作将会丢失。\n\n建议在低峰期执行此操作。')) {
+      showConfirmModal('重启服务', '⚠️ 确定要重启服务吗？\n\n重启期间服务将暂时不可用，所有未保存的操作将会丢失。\n\n建议在低峰期执行此操作。', function () {
         fetch('/api/restart', { method: 'POST' })
           .then(response => response.json())
           .then(data => {
             if (data.code === 0) {
-              alert('✓ 服务正在重启，请稍候...\n\n页面将在几秒后自动刷新。');
+              showPrompt('✓ 服务正在重启，请稍候...\n页面将在几秒后自动刷新。', true);
               setTimeout(() => { window.location.reload(); }, 3000);
             } else {
-              alert('重启失败: ' + (data.msg || '未知错误'));
+              showPrompt('重启失败: ' + (data.msg || '未知错误'), false);
             }
           })
           .catch(error => {
             console.error('重启请求失败:', error);
-            alert('重启请求发送失败，请手动重启服务');
+            showPrompt('重启请求发送失败，请手动重启服务', false);
           });
-      }
+      });
     }
 
     function resetSettings() {
-      if (confirm('确定要重置所有 API 配置（含白名单）为未设置状态吗？面板密码不受影响。')) {
+      showConfirmModal('重置配置', '确定要重置所有 API 配置（含白名单）为未设置状态吗？面板密码不受影响。', function () {
         document.getElementById('uapisKey').value = '';
         document.getElementById('uapisEnabled').checked = false;
         document.getElementById('ip9Key').value = '';
@@ -1060,9 +1070,52 @@
         document.getElementById('domainWhitelistEnabled').checked = false;
         domainWhitelist = [];
         renderDomainWhitelist();
-      }
+      });
+    }
+
+    // ============== 自定义确认模态框 ==============
+    function showConfirmModal(title, message, onOk) {
+      const existing = document.getElementById('confirmModalMask');
+      if (existing) existing.remove();
+
+      const mask = document.createElement('div');
+      mask.id = 'confirmModalMask';
+      mask.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm';
+
+      const card = document.createElement('div');
+      card.className = 'bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-gray-200 dark:border-neutral-700 w-[90%] max-w-sm overflow-hidden';
+
+      card.innerHTML = `
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-neutral-700 flex items-center justify-between gap-3">
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white">${escapeHtml(title)}</h3>
+          <button type="button" data-role="cancel" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+            <i data-feather="x"></i>
+          </button>
+        </div>
+        <div class="px-5 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">${escapeHtml(message)}</div>
+        <div class="px-5 py-3 bg-gray-50 dark:bg-neutral-800 flex justify-end gap-2">
+          <button type="button" data-role="cancel" class="px-4 py-2 bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm transition-colors">取消</button>
+          <button type="button" data-role="ok" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">确定</button>
+        </div>
+      `;
+
+      mask.appendChild(card);
+      document.body.appendChild(mask);
+      if (typeof feather !== 'undefined' && feather.replace) feather.replace();
+
+      const close = function () { mask.remove(); };
+
+      card.querySelectorAll('[data-role="cancel"]').forEach(function (btn) {
+        btn.addEventListener('click', close);
+      });
+      mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
+      card.querySelector('[data-role="ok"]').addEventListener('click', function () {
+        close();
+        if (typeof onOk === 'function') onOk();
+      });
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.js"></script>
 </body>
 
 </html>

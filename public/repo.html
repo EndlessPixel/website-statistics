@@ -16,11 +16,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold mb-6">仓库信息</h1>
+    <h1 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-feather="github" class="w-7 h-7"></i>仓库信息</h1>
     
     <div id="repoStats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       <div class="bg-white dark:bg-neutral-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-neutral-800">
@@ -56,8 +58,25 @@
       <p class="text-sm text-red-500 dark:text-red-400 mt-2">请检查网络连接，其他功能不受影响。</p>
     </div>
     
+    <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6 mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <h2 class="text-lg font-semibold flex items-center gap-2"><i data-feather="link" class="w-5 h-5"></i>仓库链接</h2>
+        <button onclick="loadRepoInfo()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+          <i data-feather="refresh-cw" class="w-4 h-4"></i>刷新
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <a href="https://github.com/EndlessPixel/website-statistics" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors">
+          <i data-feather="github" class="w-4 h-4"></i>GitHub 仓库
+        </a>
+        <a href="https://github.com/EndlessPixel/website-statistics.git" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors">
+          <i data-feather="link" class="w-4 h-4"></i>克隆地址
+        </a>
+      </div>
+    </div>
+    
     <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-6">
-      <h2 class="text-lg font-semibold mb-4">贡献者</h2>
+      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i data-feather="github" class="w-5 h-5"></i>贡献者</h2>
       <div id="contributorsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <div class="text-center text-gray-500 dark:text-gray-400 col-span-full py-8">加载中...</div>
       </div>
@@ -74,6 +93,7 @@
       AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       loadSettingsAndRepoInfo();
+      if (window.feather) feather.replace();
     });
     
     async function loadSettingsAndRepoInfo() {
@@ -135,5 +155,7 @@
       `).join('');
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', function() { if (window.feather) feather.replace(); });</script>
 </body>
 </html>

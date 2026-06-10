@@ -16,6 +16,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.css">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-neutral-950 text-gray-900 dark:text-white">
   
@@ -29,14 +31,14 @@
           <span class="text-sm text-gray-700 dark:text-gray-300">全选</span>
         </label>
         <span id="selectedCount" class="text-sm text-gray-500 dark:text-gray-400">已选择 0 条</span>
-        <button id="batchDeleteBtn" onclick="AppUtils.handleBatchDelete(false, loadRecords)" disabled class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
-          批量删除
+        <button id="batchDeleteBtn" onclick="AppUtils.handleBatchDelete(false, loadRecords)" disabled class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5">
+          <i data-feather="trash-2" class="w-4 h-4"></i> 批量删除
         </button>
-        <button onclick="AppUtils.handleBatchDelete(true, loadRecords)" disabled id="forceBatchDeleteBtn" class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
-          强制批量删除
+        <button onclick="AppUtils.handleBatchDelete(true, loadRecords)" disabled id="forceBatchDeleteBtn" class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5">
+          <i data-feather="alert-triangle" class="w-4 h-4"></i> 强制批量删除
         </button>
-        <button onclick="openBackupModal()" class="ml-auto px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors">
-          📦 备份管理
+        <button onclick="openBackupModal()" class="ml-auto px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors inline-flex items-center gap-1.5">
+          <i data-feather="download" class="w-4 h-4"></i> 备份管理
         </button>
       </div>
       
@@ -66,12 +68,12 @@
       <div class="flex items-center gap-4">
         <span class="text-sm text-gray-500 dark:text-gray-400">每页:</span>
         <input type="number" id="pageSizeInput" value="25" min="1" max="100" class="w-16 px-2 py-1 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-white text-sm">
-        <button onclick="applyPageSize()" class="px-3 py-1 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm transition-colors">应用</button>
+        <button onclick="applyPageSize()" class="px-3 py-1 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded-lg text-sm transition-colors inline-flex items-center gap-1.5"><i data-feather="search" class="w-4 h-4"></i>应用</button>
       </div>
       <div class="flex items-center gap-4">
         <span class="text-sm text-gray-500 dark:text-gray-400">共 <span id="totalRecords">0</span> 条记录，当前第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页</span>
-        <button onclick="AppUtils.prevPage(loadRecords)" id="prevBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50">上一页</button>
-        <button onclick="AppUtils.nextPage(loadRecords)" id="nextBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50">下一页</button>
+        <button onclick="AppUtils.prevPage(loadRecords)" id="prevBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 inline-flex items-center gap-1.5"><i data-feather="chevron-left" class="w-4 h-4"></i>上一页</button>
+        <button onclick="AppUtils.nextPage(loadRecords)" id="nextBtn" disabled class="px-3 py-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 inline-flex items-center gap-1.5">下一页<i data-feather="chevron-right" class="w-4 h-4"></i></button>
       </div>
     </div>
   </main>
@@ -82,9 +84,7 @@
       <div class="p-6 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">IP信息查询</h3>
         <button onclick="AppUtils.closeIpModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
+          <i data-feather="x" class="w-6 h-6"></i>
         </button>
       </div>
       <div id="ipInfoContent" class="p-6">
@@ -105,6 +105,7 @@
       document.getElementById('selectAll').addEventListener('change', function(e) {
         AppUtils.toggleSelectAll(e.target.checked);
       });
+      feather.replace();
     });
     
     async function loadRecords() {
@@ -176,7 +177,7 @@
       if (!isNaN(newSize) && newSize >= 1 && newSize <= 100) {
         AppUtils.applyPageSize(newSize, loadRecords);
       } else {
-        alert('每页数量必须在1-100之间');
+        showPrompt('每页数量必须在1-100之间', false);
         const state = AppUtils.getPaginationState();
         document.getElementById('pageSizeInput').value = state.currentPageSize;
       }
@@ -290,28 +291,31 @@
     }
     
     async function rollbackTo(filename) {
-      if (!confirm('确定要回滚到此备份吗？当前数据将被替换！')) {
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/api/backups/${filename}/rollback`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-        
-        if (data.code === 0) {
-          alert(data.msg);
-          loadRecords();
-          loadBackupList();
-        } else {
-          alert('回滚失败: ' + data.msg);
+      AppUtils.showConfirmModal('回滚备份', '确定要回滚到此备份吗？当前数据将被替换！', function() {
+        try {
+          fetch(`/api/backups/${filename}/rollback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.code === 0) {
+              showPrompt(data.msg, true);
+              loadRecords();
+              loadBackupList();
+            } else {
+              showPrompt('回滚失败: ' + data.msg, false);
+            }
+          })
+          .catch(error => {
+            console.error('回滚失败:', error);
+            showPrompt('回滚失败', false);
+          });
+        } catch (error) {
+          console.error('回滚失败:', error);
+          showPrompt('回滚失败', false);
         }
-      } catch (error) {
-        console.error('回滚失败:', error);
-        alert('回滚失败');
-      }
+      });
     }
     
     async function createManualBackup() {
@@ -324,14 +328,14 @@
         const data = await response.json();
         
         if (data.code === 0) {
-          alert('备份创建成功');
+          showPrompt('备份创建成功', true);
           loadBackupList();
         } else {
-          alert('备份创建失败: ' + data.msg);
+          showPrompt('备份创建失败: ' + data.msg, false);
         }
       } catch (error) {
         console.error('创建备份失败:', error);
-        alert('备份创建失败');
+        showPrompt('备份创建失败', false);
       }
     }
     
@@ -349,18 +353,16 @@
   <div id="backupModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
     <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
       <div class="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center">
-        <h3 class="font-semibold text-gray-900 dark:text-white">📦 备份管理</h3>
+        <h3 class="font-semibold text-gray-900 dark:text-white"><i data-feather="download" class="w-5 h-5 inline"></i> 备份管理</h3>
         <button onclick="closeBackupModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
+          <i data-feather="x" class="w-5 h-5"></i>
         </button>
       </div>
       <div class="p-4 overflow-y-auto max-h-[60vh]">
         <div class="mb-4 flex justify-between items-center">
           <p class="text-sm text-gray-500 dark:text-gray-400">共 ${currentBackups.length} 个备份（最多保留25个）</p>
-          <button onclick="createManualBackup()" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg">
-            + 手动备份
+          <button onclick="createManualBackup()" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg inline-flex items-center gap-1.5">
+            <i data-feather="plus-circle" class="w-4 h-4"></i> 手动备份
           </button>
         </div>
         <table class="w-full">
@@ -386,18 +388,17 @@
       <div class="p-4 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center">
         <h3 class="font-semibold text-gray-900 dark:text-white">备份详情</h3>
         <button onclick="closeBackupDetailModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
+          <i data-feather="x" class="w-5 h-5"></i>
         </button>
       </div>
       <div id="backupDetailContent" class="p-4">
         <div class="text-center text-gray-500 dark:text-gray-400 py-8">加载中...</div>
       </div>
       <div class="p-4 border-t border-gray-200 dark:border-neutral-800 flex justify-end gap-2">
-        <button onclick="closeBackupDetailModal()" class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm">返回</button>
+        <button onclick="closeBackupDetailModal()" class="px-4 py-2 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm inline-flex items-center gap-1.5"><i data-feather="arrow-left" class="w-4 h-4"></i>返回</button>
       </div>
     </div>
   </div>
+  <script src="https://cdn.jsdelivr.net/gh/EndlessPixel/Tip@main/1.0/tip.js"></script>
 </body>
 </html>
