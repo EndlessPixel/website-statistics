@@ -69,6 +69,8 @@ test-results/
 .cache/
 .temp/
 .tmp/
+tmp_err.txt
+tmp_out.txt
 
 # Production artifacts
 *.pid
