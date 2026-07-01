@@ -103,7 +103,7 @@
           document.getElementById('totalVisits').textContent = data.data.totalRecords || 0;
           document.getElementById('uniqueIps').textContent = data.data.uniqueIps || 0;
           document.getElementById('todayVisits').textContent = data.data.todayCount || 0;
-          document.getElementById('topPage').textContent = '-';
+          document.getElementById('topPage').textContent = data.data.topPage || '-';
         }
       } catch (error) {
         console.error('获取统计数据失败:', error);

@@ -1059,6 +1059,16 @@ app.get('/api/overview', (req, res) => {
     }
     todayIpStmt.free();
     
+    const topPageStmt = db.prepare(`SELECT path, COUNT(*) as cnt FROM statistics GROUP BY path ORDER BY cnt DESC LIMIT 1`);
+    let topPage = '-';
+    let topPageCount = 0;
+    if (topPageStmt.step()) {
+      const row = topPageStmt.getAsObject();
+      topPage = row && row.path !== undefined ? row.path : '-';
+      topPageCount = row && row.cnt !== undefined ? row.cnt : 0;
+    }
+    topPageStmt.free();
+    
     res.json({ 
       code: 0, 
       data: {
@@ -1067,7 +1077,9 @@ app.get('/api/overview', (req, res) => {
         uniqueUrls,
         activeDays,
         todayCount,
-        todayIps
+        todayIps,
+        topPage,
+        topPageCount
       }
     });
   } catch (err) {
