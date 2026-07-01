@@ -649,14 +649,16 @@ function isValidDomain(host) {
   // 普通域名：label 以字母数字开头/结尾，中间可含 '-'
   const labelRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$/;
   const labels = host.split('.');
-  if (labels.length < 2) return false;
+  if (labels.length === 0) return false;
   for (const label of labels) {
     if (!label || label.length > 63) return false;
     if (!labelRegex.test(label)) return false;
   }
-  // 顶级域不能全是数字（避免 "123.45" 这种被当作域名）
-  const tld = labels[labels.length - 1];
-  if (/^\d+$/.test(tld)) return false;
+  // 对于只有一个 label 的情况（如 localhost），不检查 TLD
+  if (labels.length >= 2) {
+    const tld = labels[labels.length - 1];
+    if (/^\d+$/.test(tld)) return false;
+  }
   return true;
 }
 
