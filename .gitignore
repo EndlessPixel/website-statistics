@@ -43,6 +43,7 @@ coverage/
 dist/
 build/
 *.min.js
+!public/echarts.min.js
 
 # Editor directories and files
 .vscode/
