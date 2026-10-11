@@ -134,31 +134,56 @@
         return;
       }
       
+      const esc = AppUtils.escapeHtml;
       container.innerHTML = records.map(record => `
         <tr class="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
           <td class="px-4 py-3">
-            <input type="checkbox" class="row-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600" data-id="${record.id}">
+            <input type="checkbox" class="row-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600" data-id="${esc(record.id)}">
           </td>
-          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${record.id}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${esc(record.id)}</td>
           <td class="px-4 py-3">
-            <span class="text-sm text-gray-900 dark:text-white">${record.ip}</span>
-            <button onclick="AppUtils.queryIp('${record.ip}')" class="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700">查询</button>
+            <span class="text-sm text-gray-900 dark:text-white">${esc(record.ip)}</span>
+            <button data-action="query-ip" data-ip="${esc(record.ip)}" class="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700">查询</button>
           </td>
-          <td class="px-4 py-3 text-sm text-gray-900 dark:text-white truncate max-w-[200px]" title="${record.url}">${record.url}</td>
-          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${record.path}</td>
-          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${AppUtils.formatTime(record.client_time)}</td>
-          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${AppUtils.formatTime(record.server_time)}</td>
-          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${AppUtils.formatTime(record.statistics_time)}</td>
+          <td class="px-4 py-3 text-sm text-gray-900 dark:text-white truncate max-w-[200px]" title="${esc(record.url)}">${esc(record.url)}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${esc(record.path)}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${esc(AppUtils.formatTime(record.client_time))}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${esc(AppUtils.formatTime(record.server_time))}</td>
+          <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${esc(AppUtils.formatTime(record.statistics_time))}</td>
           <td class="px-4 py-3">
-            <button onclick="AppUtils.handleDelete(${record.id}, event, loadRecords)" class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm">删除</button>
+            <button data-action="delete" data-id="${esc(record.id)}" class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm">删除</button>
           </td>
         </tr>
       `).join('');
       
+      bindTableActions();
+
       document.querySelectorAll('.row-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
           AppUtils.toggleRowSelect(parseInt(this.dataset.id));
         });
+      });
+    }
+
+    /**
+     * 表格操作按钮事件委托（用 data-* 代替内联 onclick 拼接，避免 XSS）
+     */
+    function bindTableActions() {
+      const container = document.getElementById('tableBody');
+      if (!container || container.dataset.actionsBound === '1') return;
+      container.dataset.actionsBound = '1';
+
+      container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (!target || typeof target.closest !== 'function') return;
+        const btn = target.closest('[data-action]');
+        if (!btn) return;
+
+        if (btn.dataset.action === 'query-ip') {
+          AppUtils.queryIp(btn.dataset.ip);
+        } else if (btn.dataset.action === 'delete') {
+          AppUtils.handleDelete(parseInt(btn.dataset.id), e, loadRecords);
+        }
       });
     }
     
@@ -224,24 +249,49 @@
         'manual': '手动备份'
       };
       
+      const esc = AppUtils.escapeHtml;
       container.innerHTML = backups.map((backup, index) => `
         <tr class="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
           <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${index + 1}</td>
           <td class="px-4 py-3">
-            <div class="font-medium text-gray-900 dark:text-white">${backup.date}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">${backup.filename}</div>
+            <div class="font-medium text-gray-900 dark:text-white">${esc(backup.date)}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">${esc(backup.filename)}</div>
           </td>
           <td class="px-4 py-3 text-sm">
-            <span class="px-2 py-1 rounded text-xs ${getReasonClass(backup.reason)}">${reasonLabels[backup.reason] || backup.reason}</span>
+            <span class="px-2 py-1 rounded text-xs ${getReasonClass(backup.reason)}">${esc(reasonLabels[backup.reason] || backup.reason)}</span>
           </td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
-              <button onclick="viewBackup('${backup.filename}')" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">查看</button>
-              <button onclick="rollbackTo('${backup.filename}')" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded">回滚</button>
+              <button data-action="view-backup" data-filename="${esc(backup.filename)}" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">查看</button>
+              <button data-action="rollback-backup" data-filename="${esc(backup.filename)}" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded">回滚</button>
             </div>
           </td>
         </tr>
       `).join('');
+
+      bindBackupActions();
+    }
+
+    /**
+     * 备份列表按钮事件委托（用 data-* 代替内联 onclick 拼接，避免 XSS）
+     */
+    function bindBackupActions() {
+      const container = document.getElementById('backupList');
+      if (!container || container.dataset.actionsBound === '1') return;
+      container.dataset.actionsBound = '1';
+
+      container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (!target || typeof target.closest !== 'function') return;
+        const btn = target.closest('[data-action]');
+        if (!btn) return;
+
+        if (btn.dataset.action === 'view-backup') {
+          viewBackup(btn.dataset.filename);
+        } else if (btn.dataset.action === 'rollback-backup') {
+          rollbackTo(btn.dataset.filename);
+        }
+      });
     }
     
     function getReasonClass(reason) {
@@ -256,31 +306,35 @@
     
     async function viewBackup(filename) {
       try {
-        const response = await fetch(`/api/backups/${filename}`);
+        const response = await fetch(`/api/backups/${encodeURIComponent(filename)}`);
         const data = await response.json();
         
         if (data.code === 0) {
           const backupData = data.data;
+          const esc = AppUtils.escapeHtml;
+          const preview = Array.isArray(backupData.records)
+            ? backupData.records.slice(0, 10)
+            : [];
           document.getElementById('backupDetailContent').innerHTML = `
             <div class="space-y-3">
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600 dark:text-gray-400">备份时间</span>
-                <span class="text-sm font-medium">${new Date(backupData.timestamp).toLocaleString('zh-CN')}</span>
+                <span class="text-sm font-medium">${esc(new Date(backupData.timestamp).toLocaleString('zh-CN'))}</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600 dark:text-gray-400">记录数量</span>
-                <span class="text-sm font-medium">${backupData.count} 条</span>
+                <span class="text-sm font-medium">${esc(backupData.count)} 条</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-gray-600 dark:text-gray-400">备份原因</span>
-                <span class="text-sm font-medium">${backupData.reason}</span>
+                <span class="text-sm font-medium">${esc(backupData.reason)}</span>
               </div>
               <div class="border-t border-gray-200 dark:border-neutral-700 pt-3">
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">前10条记录预览:</p>
                 <div class="max-h-40 overflow-y-auto">
-                  ${backupData.records.slice(0, 10).map((record, i) => `
+                  ${preview.map((record, i) => `
                     <div class="text-xs text-gray-600 dark:text-gray-400 py-1 border-b border-gray-100 dark:border-neutral-800">
-                      ${i + 1}. IP: ${record.ip} | URL: ${record.url} | 时间: ${AppUtils.formatTime(record.statistics_time)}
+                      ${i + 1}. IP: ${esc(record.ip)} | URL: ${esc(record.url)} | 时间: ${esc(AppUtils.formatTime(record.statistics_time))}
                     </div>
                   `).join('')}
                 </div>
@@ -298,7 +352,7 @@
     async function rollbackTo(filename) {
       AppUtils.showConfirmModal('回滚备份', '确定要回滚到此备份吗？当前数据将被替换！', function() {
         try {
-          fetch(`/api/backups/${filename}/rollback`, {
+          fetch(`/api/backups/${encodeURIComponent(filename)}/rollback`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           })

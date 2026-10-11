@@ -119,23 +119,25 @@
         ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
         : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
       
-      const statusText = info.ahead <= 0 ? '当前已是最新版本' : `落后 ${info.ahead} 个版本`;
+      const esc = AppUtils.escapeHtml;
+      const ahead = Number.isFinite(Number(info.ahead)) ? Number(info.ahead) : 0;
+      const statusText = ahead <= 0 ? '当前已是最新版本' : `落后 ${ahead} 个版本`;
       
       document.getElementById('versionContent').innerHTML = `
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">本地 Commit SHA</div>
-              <div class="font-mono text-sm bg-gray-100 dark:bg-neutral-800 px-3 py-2 rounded-lg truncate">${info.localSha || '-'}</div>
+              <div class="font-mono text-sm bg-gray-100 dark:bg-neutral-800 px-3 py-2 rounded-lg truncate">${esc(info.localSha || '-')}</div>
             </div>
             <div>
               <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">远程最新 Commit SHA</div>
-              <div class="font-mono text-sm bg-gray-100 dark:bg-neutral-800 px-3 py-2 rounded-lg truncate">${info.remoteSha || '-'}</div>
+              <div class="font-mono text-sm bg-gray-100 dark:bg-neutral-800 px-3 py-2 rounded-lg truncate">${esc(info.remoteSha || '-')}</div>
             </div>
           </div>
           <div class="text-center">
             <span class="inline-block px-4 py-2 rounded-full ${statusClass} font-medium">
-              ${statusText}
+              ${esc(statusText)}
             </span>
           </div>
         </div>
@@ -143,9 +145,11 @@
     }
     
     function showEnvError(errors) {
+      const esc = AppUtils.escapeHtml;
       let errorMsg = '当前环境不满足，无法使用此功能';
-      if (errors.length > 0) {
-        errorMsg += '：<br>' + errors.map(e => '• ' + e).join('<br>');
+      if (Array.isArray(errors) && errors.length > 0) {
+        // 每条错误信息都转义后再拼接 <br>
+        errorMsg += '：<br>' + errors.map(e => '• ' + esc(e)).join('<br>');
       }
       document.getElementById('versionContent').innerHTML = `
         <div class="text-center py-8">
@@ -158,7 +162,7 @@
     function showError(msg) {
       document.getElementById('versionContent').innerHTML = `
         <div class="text-center py-8">
-          <div class="text-gray-500 dark:text-gray-400">${msg}</div>
+          <div class="text-gray-500 dark:text-gray-400">${AppUtils.escapeHtml(msg)}</div>
         </div>
       `;
     }

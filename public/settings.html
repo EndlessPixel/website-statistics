@@ -867,10 +867,9 @@
       renderDomainWhitelist();
     }
 
+    // 复用 common.js 的统一实现，避免与全局同名函数产生两套行为
     function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, s => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-      }[s]));
+      return AppUtils.escapeHtml(str);
     }
 
     // ============== 保存配置 ==============

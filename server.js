@@ -131,7 +131,11 @@ function getBackupList() {
         .map(f => {
           const parts = f.split('_');
           const timestamp = parseInt(parts[1]);
-          const reason = parts[2]?.replace('.json', '') || 'manual';
+          // reason 本身可能带下划线（如 batch_delete），需取剩余部分拼接，
+          // 否则只取 parts[2] 会被截断成 "batch"
+          const reason = parts.length > 2
+            ? parts.slice(2).join('_').replace(/\.json$/, '')
+            : 'manual';
           return {
             filename: f,
             timestamp,
@@ -226,37 +230,52 @@ async function rollbackToBackup(filename) {
   }
 }
 
-// 加载密钥配置
-function loadKeys() {
-  try {
-    if (fs.existsSync(KEYS_FILE)) {
-      const data = fs.readFileSync(KEYS_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error('加载密钥配置失败:', err.message);
-  }
-  // 返回默认配置
+// 默认密钥配置（新增字段时也在这里登记）
+function defaultKeys() {
   return {
     uapis: { apiKey: '', enabled: false },
     ip9: { apiKey: '', enabled: false },
     github: { accessToken: '', enabled: false },
-    panelPassword: { enabled: false, hash: '' },
+    panelPassword: { enabled: false, hash: '', salt: '' },
     ipWhitelist: { enabled: false, list: [] },
     domainWhitelist: { enabled: false, list: [] }
   };
+}
+
+// 加载密钥配置
+function loadKeys() {
+  let stored = null;
+  try {
+    if (fs.existsSync(KEYS_FILE)) {
+      stored = JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8'));
+    }
+  } catch (err) {
+    console.error('加载密钥配置失败:', err.message);
+  }
+  if (!stored || typeof stored !== 'object') {
+    return defaultKeys();
+  }
+  // 与默认配置做浅合并，避免旧版 keys.json 缺少新字段时读取报错
+  const defaults = defaultKeys();
+  const merged = Object.assign({}, defaults, stored);
+  for (const key of Object.keys(defaults)) {
+    if (typeof defaults[key] === 'object' && defaults[key] !== null) {
+      merged[key] = Object.assign({}, defaults[key], stored[key] || {});
+    } else if (merged[key] === undefined) {
+      merged[key] = defaults[key];
+    }
+  }
+  return merged;
 }
 
 // 保存密钥配置
 function saveKeys(keys) {
   try {
     // 确保新字段存在
-    keys.uapis = keys.uapis || { apiKey: '', enabled: false };
-    keys.ip9 = keys.ip9 || { apiKey: '', enabled: false };
-    keys.github = keys.github || { accessToken: '', enabled: false };
-    keys.panelPassword = keys.panelPassword || { enabled: false, hash: '' };
-    keys.ipWhitelist = keys.ipWhitelist || { enabled: false, list: [] };
-    keys.domainWhitelist = keys.domainWhitelist || { enabled: false, list: [] };
+    const defaults = defaultKeys();
+    for (const key of Object.keys(defaults)) {
+      keys[key] = Object.assign({}, defaults[key], keys[key] || {});
+    }
     fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2), 'utf8');
     return true;
   } catch (err) {
@@ -267,14 +286,7 @@ function saveKeys(keys) {
 
 // 初始化密钥配置文件（如果不存在）
 if (!fs.existsSync(KEYS_FILE)) {
-  saveKeys({
-    uapis: { apiKey: '', enabled: false },
-    ip9: { apiKey: '', enabled: false },
-    github: { accessToken: '', enabled: false },
-    panelPassword: { enabled: false, hash: '' },
-    ipWhitelist: { enabled: false, list: [] },
-    domainWhitelist: { enabled: false, list: [] }
-  });
+  saveKeys(defaultKeys());
 }
 
 // 全局密钥配置
@@ -372,8 +384,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ======================== IP 白名单检查中间件 ========================
 function checkIpWhitelist(req, res, next) {
   // 放行公共路径
-  const publicPaths = ['/api/statistics', '/api/login-config', '/login', '/logout'];
-  if (publicPaths.some(p => req.path.startsWith(p)) || req.path === '/') {
+  // 注意：/api/statistics 只放行「上报」这一条（POST 且路径完全相等），
+  // 否则 /api/statistics/batch-delete、DELETE /api/statistics/:id 会被前缀匹配误放行
+  const isReportEndpoint = req.method === 'POST' && req.path === '/api/statistics';
+  const publicPaths = ['/api/login-config', '/login', '/logout'];
+  if (isReportEndpoint || publicPaths.some(p => req.path.startsWith(p)) || req.path === '/') {
     return next();
   }
 
@@ -448,8 +463,9 @@ async function fetchIpInfo(ip) {
 async function fetchIp9Info(ip) {
   return new Promise((resolve) => {
     let url;
-    if (apiKeys.ip9.enabled && apiKeys.ip9.key) {
-      url = `https://vip-84514370.ip9.com.cn/get?token=${encodeURIComponent(apiKeys.ip9.key)}&ip=${encodeURIComponent(ip)}`;
+    // 注意：配置字段名为 apiKey（与 loadKeys/saveKeys/GET·POST /api/keys 保持一致）
+    if (apiKeys.ip9 && apiKeys.ip9.enabled && apiKeys.ip9.apiKey) {
+      url = `https://vip-84514370.ip9.com.cn/get?token=${encodeURIComponent(apiKeys.ip9.apiKey)}&ip=${encodeURIComponent(ip)}`;
     } else {
       url = `https://ip9.com.cn/get?ip=${encodeURIComponent(ip)}`;
     }
@@ -476,16 +492,17 @@ async function fetchIp9Info(ip) {
 // uapis.cn 查询（备用通道）
 async function fetchUapisInfo(ip) {
   return new Promise((resolve) => {
-    const url = `https://uapis.cn/api/v1/network/ipinfo?ip=${encodeURIComponent(ip)}&source=commercial`;
+    const queryPath = `/api/v1/network/ipinfo?ip=${encodeURIComponent(ip)}&source=commercial`;
     const options = {
       hostname: 'uapis.cn',
-      path: `/api/v1/network/ipinfo?ip=${encodeURIComponent(ip)}&source=commercial`,
+      path: queryPath,
       method: 'GET',
       headers: {}
     };
 
-    if (apiKeys.uapis.key) {
-      options.headers['Authorization'] = `Bearer ${apiKeys.uapis.key}`;
+    // 注意：配置字段名为 apiKey（与 loadKeys/saveKeys/GET·POST /api/keys 保持一致）
+    if (apiKeys.uapis && apiKeys.uapis.apiKey) {
+      options.headers['Authorization'] = `Bearer ${apiKeys.uapis.apiKey}`;
     }
 
     const req = https.get(options, (res) => {
@@ -697,11 +714,27 @@ function isValidPath(path) {
   return path.length <= 1000 && !path.includes('<') && !path.includes('>');
 }
 
-// 验证时间格式 - 放宽验证，接受多种格式
+// 验证时间格式 - 放宽验证，接受多种格式（ISO、本地字符串、时间戳文本均可）
+// 只拒绝明显非法的输入：非字符串、超长、含 HTML 尖括号或控制字符
 function isValidTime(time) {
   if (!time || typeof time !== 'string') return false;
-  // 接受多种时间格式
-  return time.length <= 100 && !time.includes('<') && !time.includes('>');
+  if (time.length > 100) return false;
+  if (time.includes('<') || time.includes('>')) return false;
+  if (/[\x00-\x1f\x7f]/.test(time)) return false;
+  return true;
+}
+
+/**
+ * 解析并收敛分页参数：page 至少为 1，pageSize 限制在 1..maxPageSize
+ * 避免负数 offset 或超大 pageSize 直接进入 SQL
+ */
+function parsePagination(query, defaultPageSize = 25, maxPageSize = 100) {
+  let page = parseInt(query.page, 10);
+  let pageSize = parseInt(query.pageSize, 10);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(pageSize) || pageSize < 1) pageSize = defaultPageSize;
+  if (pageSize > maxPageSize) pageSize = maxPageSize;
+  return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
 function getSessionId(req) {
@@ -803,22 +836,34 @@ function createTable() {
   db.run(createLogsTable);
 }
 
-function logOperation(operationType, targetId = null, sessionId = null, ip = null) {
+/**
+ * 记录操作日志
+ * @param {string} operationType - 操作类型
+ * @param {number|null} targetId - 目标ID/数量（operation_logs.target_id 为 INTEGER 列，非数字应传 null）
+ * @param {string|null} sessionId - 会话ID
+ * @param {string|null} ip - 操作者IP
+ * @param {string} [detail] - 附加说明，仅输出到控制台（表内无对应字段）
+ */
+function logOperation(operationType, targetId = null, sessionId = null, ip = null, detail = '') {
   try {
+    // target_id 是 INTEGER 列，只接受整数，其余一律存 null
+    const target = Number.isInteger(targetId) ? targetId : null;
+
     const stmt = db.prepare(`
       INSERT INTO operation_logs (operation_type, target_id, session_id, ip, created_at)
       VALUES (?, ?, ?, ?, ?)
     `);
     const now = new Date().toISOString();
-    stmt.bind([operationType, targetId || null, sessionId || null, ip || null, now]);
+    stmt.bind([operationType, target, sessionId || null, ip || null, now]);
     stmt.step();
     stmt.free();
     
     // 输出到控制台
     const timeStr = new Date().toLocaleString('zh-CN');
-    const targetStr = targetId ? ` [目标ID: ${targetId}]` : '';
+    const targetStr = target !== null ? ` [目标ID: ${target}]` : '';
+    const detailStr = detail ? ` [详情: ${detail}]` : '';
     const sessionStr = sessionId ? ` [会话: ${sessionId.substring(0, 8)}...]` : '';
-    console.log(`[${timeStr}] [${operationType}]${targetStr}${sessionStr} [IP: ${ip || 'unknown'}]`);
+    console.log(`[${timeStr}] [${operationType}]${targetStr}${detailStr}${sessionStr} [IP: ${ip || 'unknown'}]`);
   } catch (err) {
     console.error('记录操作日志失败:', err.message);
   }
@@ -905,6 +950,10 @@ app.post('/api/statistics', (req, res) => {
     return res.status(400).json({ code: -1, msg: '路径格式无效' });
   }
 
+  if (!isValidTime(client_time) || !isValidTime(server_time)) {
+    return res.status(400).json({ code: -1, msg: '时间格式无效' });
+  }
+
   const statisticsTime = new Date().toISOString();
 
   const insertSql = `
@@ -931,23 +980,23 @@ app.post('/api/statistics', (req, res) => {
 
 app.get('/api/records', (req, res) => {
   const sessionId = getSessionId(req);
-  const page = parseInt(req.query.page) || 1;
-  const pageSize = parseInt(req.query.pageSize) || 25;
   
   if (!checkLogin(req)) {
     return res.json({ code: -1, msg: '未登录' });
   }
   
-  if (pageSize < 1 || pageSize > 100) {
-    return res.json({ code: -2, msg: '每页数量必须在1-100之间' });
-  }
+  const { page, pageSize, offset } = parsePagination(req.query, 25, 100);
   
   try {
     const totalResults = db.exec('SELECT COUNT(*) FROM statistics');
     const total = totalResults.length > 0 ? totalResults[0].values[0][0] : 0;
-    const offset = (page - 1) * pageSize;
     
-    const results = db.exec(`SELECT * FROM statistics ORDER BY statistics_time DESC LIMIT ? OFFSET ?`, [pageSize, offset]);
+    // 显式列出列名，避免 SELECT * 依赖列顺序导致漏字段（此前漏掉了 reporter_ip）
+    const results = db.exec(
+      `SELECT id, ip, url, path, client_time, server_time, statistics_time, reporter_ip
+       FROM statistics ORDER BY statistics_time DESC LIMIT ? OFFSET ?`,
+      [pageSize, offset]
+    );
     const rows = results.length > 0 ? results[0].values.map(row => ({
       id: row[0],
       ip: row[1],
@@ -955,7 +1004,8 @@ app.get('/api/records', (req, res) => {
       path: row[3],
       client_time: row[4],
       server_time: row[5],
-      statistics_time: row[6]
+      statistics_time: row[6],
+      reporter_ip: row[7]
     })) : [];
     
     res.json({ 
@@ -1091,9 +1141,14 @@ app.get('/api/overview', (req, res) => {
 // 重新编号统计记录
 function renumberStatistics() {
   try {
+    db.run('BEGIN TRANSACTION');
+
+    // 先清掉可能残留的临时表（上次执行中断会留下数据，导致本次重复插入）
+    db.run('DROP TABLE IF EXISTS statistics_temp');
+
     // 创建临时表（与实际 statistics 表一致的字段集）
     db.run(`
-      CREATE TABLE IF NOT EXISTS statistics_temp (
+      CREATE TABLE statistics_temp (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip TEXT,
         url TEXT,
@@ -1129,9 +1184,14 @@ function renumberStatistics() {
     // 重置序列
     db.run("DELETE FROM sqlite_sequence WHERE name='statistics'");
     
+    db.run('COMMIT');
     console.log('记录重新编号完成');
   } catch (err) {
-    console.error('重新编号失败:', err.message);
+    // 回滚：SQLite 的 DDL 也是事务性的，失败时原表可完整恢复
+    try { db.run('ROLLBACK'); } catch (_) { /* 未开启事务或已回滚 */ }
+    // 清理可能残留的临时表，避免下次执行重复插入
+    try { db.run('DROP TABLE IF EXISTS statistics_temp'); } catch (_) { /* ignore */ }
+    console.error('重新编号失败，已回滚:', err.message);
   }
 }
 
@@ -1174,6 +1234,11 @@ app.delete('/api/statistics/:id', async (req, res) => {
     console.error('删除记录失败:', err.message);
     return res.status(500).json({ code: -4, msg: '删除失败' });
   }
+});
+
+// 许可证文件（位于项目根目录，不在 public/ 下，需单独暴露）
+app.get('/LICENSE', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LICENSE'));
 });
 
 app.get('/login', (req, res) => {
@@ -1344,7 +1409,8 @@ app.post('/api/statistics/batch-delete', async (req, res) => {
     
     if (changes > 0) {
       const operationType = force ? 'force_batch_delete' : 'batch_delete';
-      logOperation(operationType, null, sessionId, clientIp);
+      // target_id 记录实际删除条数，避免日志页显示 "(null)"
+      logOperation(operationType, changes, sessionId, clientIp, `共 ${changes} 条`);
       
       // 重新编号剩余记录
       renumberStatistics();
@@ -1457,9 +1523,7 @@ app.get('/api/logs', (req, res) => {
     return res.json({ code: -1, msg: '未登录' });
   }
   
-  const page = parseInt(req.query.page) || 1;
-  const pageSize = parseInt(req.query.pageSize) || 25;
-  const offset = (page - 1) * pageSize;
+  const { page, pageSize, offset } = parsePagination(req.query, 25, 100);
   
   try {
     // 获取总数
@@ -1486,9 +1550,20 @@ app.get('/api/logs', (req, res) => {
         case 'logout': message = '管理员退出登录'; break;
         case 'delete': message = `删除记录 #${row.target_id}`; break;
         case 'force_delete': message = `强制删除记录 #${row.target_id}`; break;
-        case 'batch_delete': message = `批量删除记录 (${row.target_id})`; break;
-        case 'force_batch_delete': message = `强制批量删除记录 (${row.target_id})`; break;
+        // 批量删除的 target_id 存的是删除条数
+        case 'batch_delete': message = `批量删除 ${row.target_id ?? 0} 条记录`; break;
+        case 'force_batch_delete': message = `强制批量删除 ${row.target_id ?? 0} 条记录`; break;
         case 'login_failed': message = '登录失败'; break;
+        case 'login_failed_password': message = '登录失败（面板密码错误）'; break;
+        case 'settings_update': message = '更新密钥/白名单配置'; break;
+        case 'server_config_update': message = '更新服务器配置'; break;
+        case 'server_restart': message = '重启服务'; break;
+        case 'panel_password_enabled': message = '开启面板密码'; break;
+        case 'panel_password_disabled': message = '关闭面板密码'; break;
+        case 'panel_password_set': message = '设置面板密码'; break;
+        case 'panel_password_changed': message = '修改面板密码'; break;
+        case 'panel_password_change_failed': message = '修改面板密码失败（旧密码错误）'; break;
+        case 'panel_password_verify_failed': message = '修改面板密码失败（访问密钥错误）'; break;
         default: message = row.operation_type;
       }
       logs.push({
@@ -1571,9 +1646,16 @@ app.get('/api/repo', async (req, res) => {
     const repoUrl = `https://api.github.com/repos/${repoOwner}/${repoName}`;
     const contributorsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contributors`;
     
+    // 加超时，避免网络不通时请求一直挂起
+    const timeoutMs = 8000;
+    const withTimeout = (url) => fetch(url, {
+      headers: { 'User-Agent': 'WebsiteStatistics' },
+      signal: AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : undefined
+    });
+
     const [repoRes, contributorsRes] = await Promise.all([
-      fetch(repoUrl, { headers: { 'User-Agent': 'WebsiteStatistics' } }),
-      fetch(contributorsUrl, { headers: { 'User-Agent': 'WebsiteStatistics' } })
+      withTimeout(repoUrl),
+      withTimeout(contributorsUrl)
     ]);
     
     if (!repoRes.ok) {
@@ -1582,6 +1664,7 @@ app.get('/api/repo', async (req, res) => {
     
     const repoData = await repoRes.json();
     const contributorsData = contributorsRes.ok ? await contributorsRes.json() : [];
+    const contributors = Array.isArray(contributorsData) ? contributorsData : [];
     
     res.json({
       code: 0,
@@ -1589,7 +1672,7 @@ app.get('/api/repo', async (req, res) => {
         stars: repoData.stargazers_count || 0,
         watchers: repoData.subscribers_count || 0,
         forks: repoData.forks_count || 0,
-        contributors: contributorsData.slice(0, 12).map(c => ({
+        contributors: contributors.slice(0, 12).map(c => ({
           login: c.login,
           avatar_url: c.avatar_url,
           contributions: c.contributions
@@ -1603,11 +1686,21 @@ app.get('/api/repo', async (req, res) => {
 });
 
 // ======================== Git版本信息接口 ========================
+
+// git 远程查询结果缓存：execSync 是同步阻塞的，网络不通时会把整个请求挂住，
+// 这里加 5 分钟缓存 + 单次 8 秒超时，避免每次打开版本页都卡死
+const VERSION_CACHE_TTL = 5 * 60 * 1000;
+let versionCache = { timestamp: 0, payload: null };
+
 app.get('/api/version', async (req, res) => {
   if (!checkLogin(req)) {
     return res.json({ code: -1, msg: '未登录' });
   }
-  
+
+  if (versionCache.payload && Date.now() - versionCache.timestamp < VERSION_CACHE_TTL) {
+    return res.json(versionCache.payload);
+  }
+
   const errors = [];
   
   // 检查 .git 目录
@@ -1655,14 +1748,21 @@ app.get('/api/version', async (req, res) => {
         console.error(`[DEBUG] 获取远程仓库失败: ${e.message}`);
       }
       
-      // 获取远程最新 commit
+      // 获取远程最新 commit（带超时，失败时降级为仅用本地 SHA）
       if (hasRemote) {
+        const gitOpts = { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname, timeout: 8000 };
         try {
-          execSync('git fetch origin', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname });
-          remoteSha = execSync('git rev-parse origin/main', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim();
+          execSync('git fetch origin', gitOpts);
+        } catch (e) {
+          // fetch 失败不致命，仍可用本地已缓存的 remote-tracking 分支
+          gitError += `git fetch 失败或超时: ${e.message}; `;
+          console.error(`[DEBUG] git fetch 失败或超时: ${e.message}`);
+        }
+        try {
+          remoteSha = execSync('git rev-parse origin/main', gitOpts).trim();
         } catch (e) {
           try {
-            remoteSha = execSync('git rev-parse origin/master', { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim();
+            remoteSha = execSync('git rev-parse origin/master', gitOpts).trim();
           } catch (e2) {
             remoteSha = null;
             gitError += `获取远程SHA失败: ${e2.message}; `;
@@ -1690,6 +1790,7 @@ app.get('/api/version', async (req, res) => {
   };
   
   if (errors.length > 0) {
+    // 环境异常不写入缓存，修好后能立即生效
     return res.json({
       code: -1,
       msg: '环境检查未通过',
@@ -1699,16 +1800,18 @@ app.get('/api/version', async (req, res) => {
   
   // 计算落后多少个提交
   let ahead = 0;
-  if (localSha && remoteSha && localSha !== remoteSha) {
+  const isSha = s => typeof s === 'string' && /^[0-9a-f]{7,40}$/i.test(s);
+  if (isSha(localSha) && isSha(remoteSha) && localSha !== remoteSha) {
     try {
       const { execSync } = require('child_process');
-      ahead = parseInt(execSync(`git rev-list --count ${remoteSha}..${localSha}`, { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname }).trim()) || 0;
+      ahead = parseInt(execSync(`git rev-list --count ${remoteSha}..${localSha}`,
+        { encoding: 'utf-8', stdio: 'pipe', cwd: __dirname, timeout: 8000 }).trim()) || 0;
     } catch (e) {
       ahead = 0;
     }
   }
   
-  res.json({
+  const payload = {
     code: 0,
     data: {
       localSha,
@@ -1716,7 +1819,9 @@ app.get('/api/version', async (req, res) => {
       ahead,
       env: { hasGitDir, hasGitCmd, hasRemote }
     }
-  });
+  };
+  versionCache = { timestamp: Date.now(), payload };
+  res.json(payload);
 });
 
 // ======================== 密钥配置 API ========================
@@ -1918,13 +2023,18 @@ app.post('/api/server-config', (req, res) => {
     return res.json({ code: -1, msg: '未登录' });
   }
 
-  const sessionId = req.cookies.sessionId;
+  const sessionId = getSessionId(req);
   const clientIp = getClientIp(req);
   const { port, ip } = req.body;
 
   // 验证端口
   if (port !== undefined && (port < 1 || port > 65535)) {
     return res.json({ code: -1, msg: '端口必须在1-65535之间' });
+  }
+
+  // 验证绑定 IP
+  if (ip !== undefined && (typeof ip !== 'string' || ip.trim() === '')) {
+    return res.json({ code: -1, msg: '绑定IP不能为空' });
   }
 
   try {
@@ -1936,8 +2046,8 @@ app.post('/api/server-config', (req, res) => {
     fs.writeFileSync(SERVER_CONFIG_FILE, JSON.stringify(newConfig, null, 2));
     serverConfig = newConfig;
 
-    logOperation('server_config_update',
-      `port:${newConfig.port}, ip:${newConfig.ip}`, sessionId, clientIp);
+    logOperation('server_config_update', null, sessionId, clientIp,
+      `port:${newConfig.port}, ip:${newConfig.ip}`);
 
     res.json({ code: 0, msg: '配置已保存，需要重启服务生效', data: newConfig });
   } catch (err) {
@@ -1951,7 +2061,7 @@ app.post('/api/restart', (req, res) => {
     return res.json({ code: -1, msg: '未登录' });
   }
 
-  const sessionId = req.cookies.sessionId;
+  const sessionId = getSessionId(req);
   const clientIp = getClientIp(req);
 
   // 先记录重启操作日志
