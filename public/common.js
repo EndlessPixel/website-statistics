@@ -3,6 +3,66 @@
  * Website Statistics Service
  */
 
+// ======================== 通用工具 ========================
+
+/**
+ * HTML 实体转义（与 server.js 的 escapeHtml 同算法）
+ * 用于所有 innerHTML 插值点，防止存储型 XSS
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+let promptTimer = null;
+
+/**
+ * 统一提示入口
+ * 项目原先依赖外部 tip.js 提供全局 showPrompt，但仓库内并无定义：
+ * CDN 不可用时（离线/内网/被拦截）所有调用都会抛 ReferenceError。
+ * 这里提供兜底：外部库已加载则复用其实现，否则自绘一个轻量 toast。
+ */
+function showPrompt(message, success) {
+  const external = typeof window !== 'undefined' ? window.showPrompt : null;
+  if (typeof external === 'function' && external !== showPrompt) {
+    return external(message, success);
+  }
+
+  if (typeof document === 'undefined') return;
+
+  const text = message === null || message === undefined ? '' : String(message);
+  const isOk = success !== false;
+
+  let toast = document.getElementById('app-prompt-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'app-prompt-toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.style.cssText =
+    'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;' +
+    'padding:10px 16px;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,.2);' +
+    'font-size:14px;line-height:1.5;max-width:90vw;white-space:pre-line;' +
+    'color:#fff;opacity:1;transition:opacity .2s;' +
+    (isOk ? 'background:#059669;' : 'background:#dc2626;');
+  toast.textContent = text;
+
+  if (promptTimer) clearTimeout(promptTimer);
+  promptTimer = setTimeout(function () {
+    if (!toast) return;
+    toast.style.opacity = '0';
+    promptTimer = setTimeout(function () {
+      if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 200);
+  }, 2600);
+}
+
 // ======================== 主题切换 ========================
 
 /**
@@ -30,16 +90,17 @@ function toggleTheme() {
 
 /**
  * 更新主题UI（图标）
+ * #themeIcon 是一个容器（span），内部放 <i data-feather="...">。
+ * 用容器而非直接替换图标元素，可避免 feather.replace() 把元素替换掉后丢失 id。
  */
 function updateThemeUI(isDark) {
   const icon = document.getElementById('themeIcon');
   if (!icon) return;
-  
-  if (isDark) {
-    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-  } else {
-    icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>';
-  }
+
+  const iconName = isDark ? 'moon' : 'sun';
+  const iconClass = 'w-5 h-5 text-gray-600 dark:text-gray-300';
+  icon.innerHTML = `<i data-feather="${iconName}" class="${iconClass}"></i>`;
+  if (typeof feather !== 'undefined') feather.replace();
 }
 
 // ======================== 导航栏 ========================
@@ -101,7 +162,7 @@ function renderNavigationBar() {
             <i data-feather="menu" class="w-6 h-6"></i>
           </button>
           <button onclick="AppUtils.toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors">
-            <i data-feather="sun" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
+            <span id="themeIcon" class="inline-flex"><i data-feather="sun" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i></span>
           </button>
           <a href="/logout" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 inline-flex items-center gap-1.5"><i data-feather="log-out" class="w-4 h-4"></i>退出</a>
         </div>
@@ -125,6 +186,10 @@ function renderNavigationBar() {
       mobileMenu.classList.toggle('hidden');
     });
   }
+
+  // 导航栏是动态插入的，插入后需同步一次主题图标状态
+  // （大多数页面先调用 initTheme()，此时 #themeIcon 还不存在）
+  updateThemeUI(document.documentElement.classList.contains('dark'));
 
   if (typeof feather !== 'undefined') feather.replace();
 }
@@ -166,22 +231,37 @@ function setupAutoRefresh(callback) {
   
   if (!autoRefresh || !interval) return;
   
-  function doRefresh() {
-    if (autoRefresh.checked) {
-      const intervalValue = parseInt(interval.value) * 1000;
-      if (refreshTimer) {
-        clearInterval(refreshTimer);
-      }
-      refreshTimer = setInterval(callback, intervalValue);
+  function stopTimer() {
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
     }
+  }
+
+  function doRefresh() {
+    // 无论开关状态如何，先停掉旧定时器，避免叠加多个定时器
+    stopTimer();
+    if (!autoRefresh.checked) return;
+
+    const seconds = parseInt(interval.value, 10);
+    // 非法值兜底为 5 秒，避免 parseInt 结果为 NaN 时 setInterval 退化成 0ms 疯狂请求
+    const intervalValue = (!isNaN(seconds) && seconds > 0 ? seconds : 5) * 1000;
+    refreshTimer = setInterval(callback, intervalValue);
   }
   
   // 初始设置
   doRefresh();
   
-  // 监听变化
-  autoRefresh.addEventListener('change', doRefresh);
-  interval.addEventListener('change', doRefresh);
+  // 监听变化（用 dataset 标记避免重复注册）
+  if (!autoRefresh.dataset.refreshBound) {
+    autoRefresh.addEventListener('change', doRefresh);
+    interval.addEventListener('change', doRefresh);
+    autoRefresh.dataset.refreshBound = '1';
+    interval.dataset.refreshBound = '1';
+  }
+  
+  // 页面关闭/跳转前清理，避免定时器泄漏
+  window.addEventListener('beforeunload', clearAutoRefresh);
 }
 
 /**
@@ -342,12 +422,28 @@ function toggleRowSelect(id) {
 }
 
 /**
+ * 设置每页数量（写入内部状态，供页面初始化时覆盖默认值）
+ * @param {number} size - 每页条数，需在 1-100 之间
+ */
+function setPageSize(size) {
+  const n = parseInt(size, 10);
+  if (!isNaN(n) && n >= 1 && n <= 100) {
+    paginationState.currentPageSize = n;
+    paginationState.currentPage = 1;
+  }
+}
+
+/**
  * 获取当前分页状态
+ * 同时返回两套键名：page/pageSize 与 currentPage/currentPageSize
+ * （历史调用方混用了两种写法，这里保持双向兼容）
  */
 function getPaginationState() {
   return {
     page: paginationState.currentPage,
-    pageSize: paginationState.currentPageSize
+    pageSize: paginationState.currentPageSize,
+    currentPage: paginationState.currentPage,
+    currentPageSize: paginationState.currentPageSize
   };
 }
 
@@ -450,6 +546,41 @@ function batchDelete(force = false, callback) {
 // ======================== IP查询 ========================
 
 /**
+ * 为 IP 信息弹窗内容区绑定事件委托
+ * 用 data-* 属性代替内联 onclick 字符串拼接，避免引号截断 / XSS
+ */
+function bindIpContentActions(container) {
+  if (!container || container.dataset.actionsBound === '1') return;
+  container.dataset.actionsBound = '1';
+
+  container.addEventListener('click', function(e) {
+    const target = e.target;
+    if (!target || typeof target.closest !== 'function') return;
+    const btn = target.closest('[data-action]');
+    if (!btn) return;
+
+    switch (btn.dataset.action) {
+      case 'execute':
+        executeIpQuery(btn.dataset.ip, btn.dataset.api);
+        break;
+      case 'select':
+        queryIp(btn.dataset.ip);
+        break;
+      case 'raw':
+        showRawData(btn.dataset.raw);
+        break;
+      case 'formatted':
+        try {
+          renderIpInfo(JSON.parse(decodeURIComponent(btn.dataset.raw)));
+        } catch (err) {
+          console.error('解析IP原始数据失败:', err);
+        }
+        break;
+    }
+  });
+}
+
+/**
  * 查询IP信息
  */
 function queryIp(ip) {
@@ -461,14 +592,15 @@ function queryIp(ip) {
     return;
   }
   
-  // 显示API选择弹窗
+  // 显示API选择弹窗（IP 通过 data-* 传递，不再拼进 onclick 字符串）
+  const safeIp = escapeHtml(ip);
   content.innerHTML = `
 <div class="text-center py-6 px-4 max-w-xl mx-auto">
   <p class="text-gray-700 dark:text-gray-300 text-lg font-medium mb-5">请选择查询方式</p>
 
   <div class="grid grid-cols-3 gap-4">
     <button
-      onclick="AppUtils.executeIpQuery('${ip}', 'ip9')"
+      data-action="execute" data-ip="${safeIp}" data-api="ip9"
       class="px-3 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center gap-2"
     >
       <i data-feather="globe" class="w-5 h-5"></i>
@@ -476,7 +608,7 @@ function queryIp(ip) {
     </button>
 
     <button
-      onclick="AppUtils.executeIpQuery('${ip}', 'uapis')"
+      data-action="execute" data-ip="${safeIp}" data-api="uapis"
       class="px-3 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center gap-2"
     >
       <i data-feather="server" class="w-5 h-5"></i>
@@ -484,7 +616,7 @@ function queryIp(ip) {
     </button>
 
     <button
-      onclick="AppUtils.executeIpQuery('${ip}', 'ip-api')"
+      data-action="execute" data-ip="${safeIp}" data-api="ip-api"
       class="px-3 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm hover:shadow transition-all duration-200 flex flex-col items-center justify-center gap-2"
     >
       <i data-feather="map-pin" class="w-5 h-5"></i>
@@ -497,6 +629,7 @@ function queryIp(ip) {
   </p>
 </div>
   `;
+  bindIpContentActions(content);
   modal.style.display = 'block';
   if (typeof feather !== 'undefined') feather.replace();
 }
@@ -508,14 +641,17 @@ function executeIpQuery(ip, api) {
   const content = document.getElementById('ipInfoContent');
   const apiNames = { 'ip9': 'ip9.com.cn', 'uapis': 'uapis.cn', 'ip-api': 'ip-api.com' };
   
+  const apiLabel = escapeHtml(apiNames[api] || api);
+  const safeIp = escapeHtml(ip);
+
   content.innerHTML = `
     <div class="text-center py-4">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-      <p class="text-gray-500 dark:text-gray-400 mt-2">正在通过 ${apiNames[api] || api} 查询...</p>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">正在通过 ${apiLabel} 查询...</p>
     </div>
   `;
   
-  fetch(`/api/query-ip?ip=${encodeURIComponent(ip)}&api=${api}`)
+  fetch(`/api/query-ip?ip=${encodeURIComponent(ip)}&api=${encodeURIComponent(api)}`)
     .then(response => response.json())
     .then(data => {
       if (data.code === 0) {
@@ -524,13 +660,14 @@ function executeIpQuery(ip, api) {
         // 查询失败，显示返回按钮让用户重新选择
         content.innerHTML = `
           <div class="text-center">
-            <p class="text-red-500 dark:text-red-400 mb-2">${data.msg || '查询失败'}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">通过 ${apiNames[api] || api} 查询失败，请选择其他通道重试</p>
-            <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+            <p class="text-red-500 dark:text-red-400 mb-2">${escapeHtml(data.msg || '查询失败')}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">通过 ${apiLabel} 查询失败，请选择其他通道重试</p>
+            <button data-action="select" data-ip="${safeIp}" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
               <i data-feather="arrow-left" class="w-4 h-4"></i> 返回选择通道
             </button>
           </div>
         `;
+        bindIpContentActions(content);
         if (typeof feather !== 'undefined') feather.replace();
       }
     })
@@ -540,11 +677,12 @@ function executeIpQuery(ip, api) {
         <div class="text-center">
           <p class="text-red-500 dark:text-red-400 mb-2">网络错误，查询失败</p>
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">请检查网络连接后重试</p>
-          <button onclick="AppUtils.queryIp('${ip}')" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+          <button data-action="select" data-ip="${safeIp}" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
             <i data-feather="arrow-left" class="w-4 h-4"></i> 返回选择通道
           </button>
         </div>
       `;
+      bindIpContentActions(content);
       if (typeof feather !== 'undefined') feather.replace();
     });
 }
@@ -565,33 +703,35 @@ function renderIpInfo(ipInfo) {
   };
   
   const source = ipInfo.source || 'ip9';
-  const sourceLabel = sourceNames[source] || source;
+  const sourceLabel = escapeHtml(sourceNames[source] || source);
   const sourceClass = sourceColors[source] || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
   
   // 保存原始数据用于显示
-  const rawData = encodeURIComponent(JSON.stringify(ipInfo, null, 2));
+  const rawData = escapeHtml(encodeURIComponent(JSON.stringify(ipInfo, null, 2)));
+  const safeIp = escapeHtml(ipInfo.ip);
   
   const infoHtml = `
     <div class="mb-4 flex items-center justify-between">
       <span class="text-xs px-2 py-1 rounded ${sourceClass}">来源: ${sourceLabel}</span>
       <div class="flex gap-2">
-        <button onclick="AppUtils.showRawData('${rawData}')" class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline inline-flex items-center gap-1"><i data-feather="code" class="w-3.5 h-3.5"></i>查看原始返回</button>
-        <button onclick="AppUtils.queryIp('${ipInfo.ip}')" class="text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"><i data-feather="arrow-left" class="w-3.5 h-3.5"></i>返回选择通道</button>
+        <button data-action="raw" data-raw="${rawData}" class="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline inline-flex items-center gap-1"><i data-feather="code" class="w-3.5 h-3.5"></i>查看原始返回</button>
+        <button data-action="select" data-ip="${safeIp}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"><i data-feather="arrow-left" class="w-3.5 h-3.5"></i>返回选择通道</button>
       </div>
     </div>
     <div class="ip-info-grid">
-      <div class="info-item"><span class="label">IP地址:</span><span class="value">${ipInfo.ip || '-'}</span></div>
-      <div class="info-item"><span class="label">国家/地区:</span><span class="value">${ipInfo.country || '-'}</span></div>
-      <div class="info-item"><span class="label">省份:</span><span class="value">${ipInfo.province || ipInfo.prov || '-'}</span></div>
-      <div class="info-item"><span class="label">城市:</span><span class="value">${ipInfo.city || '-'}</span></div>
-      <div class="info-item"><span class="label">运营商:</span><span class="value">${ipInfo.isp || '-'}</span></div>
-      ${ipInfo.lng ? `<div class="info-item"><span class="label">经度:</span><span class="value">${ipInfo.lng}</span></div>` : ''}
-      ${ipInfo.lat ? `<div class="info-item"><span class="label">纬度:</span><span class="value">${ipInfo.lat}</span></div>` : ''}
-      ${ipInfo.info ? `<div class="info-item col-span-2"><span class="label">完整信息:</span><span class="value">${ipInfo.info}</span></div>` : ''}
+      <div class="info-item"><span class="label">IP地址:</span><span class="value">${escapeHtml(ipInfo.ip || '-')}</span></div>
+      <div class="info-item"><span class="label">国家/地区:</span><span class="value">${escapeHtml(ipInfo.country || '-')}</span></div>
+      <div class="info-item"><span class="label">省份:</span><span class="value">${escapeHtml(ipInfo.province || ipInfo.prov || '-')}</span></div>
+      <div class="info-item"><span class="label">城市:</span><span class="value">${escapeHtml(ipInfo.city || '-')}</span></div>
+      <div class="info-item"><span class="label">运营商:</span><span class="value">${escapeHtml(ipInfo.isp || '-')}</span></div>
+      ${ipInfo.lng ? `<div class="info-item"><span class="label">经度:</span><span class="value">${escapeHtml(ipInfo.lng)}</span></div>` : ''}
+      ${ipInfo.lat ? `<div class="info-item"><span class="label">纬度:</span><span class="value">${escapeHtml(ipInfo.lat)}</span></div>` : ''}
+      ${ipInfo.info ? `<div class="info-item col-span-2"><span class="label">完整信息:</span><span class="value">${escapeHtml(ipInfo.info)}</span></div>` : ''}
     </div>
   `;
   
   content.innerHTML = infoHtml;
+  bindIpContentActions(content);
   if (typeof feather !== 'undefined') feather.replace();
 }
 
@@ -602,14 +742,20 @@ function showRawData(rawData) {
   const content = document.getElementById('ipInfoContent');
   if (!content) return;
   
-  const decodedData = decodeURIComponent(rawData);
+  let decodedData = rawData;
+  try {
+    decodedData = decodeURIComponent(rawData);
+  } catch (e) {
+    console.error('解码IP原始数据失败:', e);
+  }
   
   content.innerHTML = `
     <div class="mb-4">
-      <button onclick="AppUtils.renderIpInfo(JSON.parse(decodeURIComponent('${rawData}')))" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 inline-flex items-center gap-1"><i data-feather="arrow-left" class="w-3.5 h-3.5"></i>返回格式化显示</button>
-      <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 dark:text-gray-200 p-4 rounded-lg text-xs overflow-x-auto max-h-80 overflow-y-auto">${decodedData}</pre>
+      <button data-action="formatted" data-raw="${escapeHtml(rawData)}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 inline-flex items-center gap-1"><i data-feather="arrow-left" class="w-3.5 h-3.5"></i>返回格式化显示</button>
+      <pre class="bg-gray-900 dark:bg-gray-800 text-gray-100 dark:text-gray-200 p-4 rounded-lg text-xs overflow-x-auto max-h-80 overflow-y-auto">${escapeHtml(decodedData)}</pre>
     </div>
   `;
+  bindIpContentActions(content);
   if (typeof feather !== 'undefined') feather.replace();
 }
 
@@ -687,6 +833,10 @@ function showConfirmModal(title, message, onOk) {
 // ======================== 导出公共API ========================
 
 window.AppUtils = {
+  // 通用工具
+  escapeHtml,
+  showPrompt,
+
   // 主题
   initTheme,
   toggleTheme,
@@ -708,6 +858,7 @@ window.AppUtils = {
   
   // 分页
   getPaginationState,
+  setPageSize,
   resetPaginationState,
   prevPage,
   nextPage,

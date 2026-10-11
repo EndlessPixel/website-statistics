@@ -149,11 +149,12 @@
         return;
       }
       
+      const esc = AppUtils.escapeHtml;
       container.innerHTML = contributors.map(c => `
         <div class="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
-          <img src="${c.avatar_url}" alt="${c.login}" class="w-12 h-12 rounded-full mb-2">
-          <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-full">${c.login}</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">${c.contributions} commits</span>
+          <img src="${esc(c.avatar_url)}" alt="${esc(c.login)}" class="w-12 h-12 rounded-full mb-2">
+          <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-full">${esc(c.login)}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">${esc(c.contributions)} commits</span>
         </div>
       `).join('');
     }

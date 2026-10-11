@@ -31,7 +31,7 @@
 
   <!-- 主题切换按钮 -->
   <button onclick="toggleTheme()" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl bg-white dark:bg-neutral-800 shadow-lg hover:shadow-xl transition-all border border-gray-200 dark:border-neutral-700">
-    <i id="themeIcon" data-feather="sun" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
+    <span id="themeIcon" class="inline-flex"><i data-feather="sun" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i></span>
   </button>
 
   <!-- 登录框 -->
@@ -114,16 +114,13 @@
       errorEl.classList.remove('hidden');
     }
 
-    // 主题切换
+    // 主题切换（复用 common.js 的统一实现，避免 feather 替换元素后丢失 id）
     function toggleTheme() {
-      const isDark = document.documentElement.classList.toggle('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      const icon = document.getElementById('themeIcon');
-      icon.setAttribute('data-feather', isDark ? 'moon' : 'sun');
-      feather.replace();
+      AppUtils.toggleTheme();
     }
 
     feather.replace();
+    AppUtils.updateThemeUI(document.documentElement.classList.contains('dark'));
 
     loadLoginConfig();
   </script>

@@ -78,8 +78,7 @@
       AppUtils.renderNavigationBar();
       AppUtils.renderFooter();
       AppUtils.resetPaginationState();
-      const state = AppUtils.getPaginationState();
-      state.currentPageSize = 20;
+      AppUtils.setPageSize(20);
       loadLogs();
       AppUtils.setupAutoRefresh(loadLogs);
       if (window.feather) feather.replace();
@@ -120,15 +119,16 @@
         };
         
         const action = actionLabels[log.action] || { text: log.action, bg: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400' };
+        const esc = AppUtils.escapeHtml;
         
         return `
           <tr class="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">${log.created_at || '-'}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">${esc(log.created_at || '-')}</td>
             <td class="px-4 py-3">
-              <span class="${action.bg} px-2 py-0.5 rounded text-xs font-medium">${action.text}</span>
+              <span class="${action.bg} px-2 py-0.5 rounded text-xs font-medium">${esc(action.text)}</span>
             </td>
-            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">${log.session_id || '-'}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${log.ip || '-'}</td>
+            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">${esc(log.session_id || '-')}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${esc(log.ip || '-')}</td>
           </tr>
         `;
       }).join('');
